@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Silent Payments in the Coinbase — an explainer</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 3rem 1.25rem 6rem; background: #fdfcfa; color: #1c1c1c;
+    font: 17px/1.7 -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 40rem; margin: 0 auto; }
+  h1 { font-size: 1.8rem; line-height: 1.25; margin: 0 0 .5rem; letter-spacing: -.015em; }
+  .sub { color: #666; margin: 0 0 3rem; font-size: 1.02rem; }
+  h2 {
+    font-size: 1.15rem; margin: 3rem 0 1rem;
+    display: flex; align-items: baseline; gap: .6rem;
+  }
+  h2 .n {
+    font-size: .75rem; color: #9a8f7d; font-weight: 700; letter-spacing: .1em;
+    font-variant-numeric: tabular-nums;
+  }
+  p { margin: 0 0 1.1rem; }
+  code, .math { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  code { background: #f1eee8; padding: .1em .3em; border-radius: 3px; font-size: .87em; }
+  .math {
+    background: #f7f5f1; border: 1px solid #e5e0d6; border-radius: 6px;
+    padding: 1.1rem 1.25rem; margin: 1.4rem 0; font-size: .92rem; line-height: 2;
+    overflow-x: auto; white-space: pre;
+  }
+  .math .c { color: #8c8578; }
+  .math b { font-weight: 700; }
+  .key {
+    background: #fff; border: 1px solid #e5e0d6; border-left: 4px solid #1c1c1c;
+    border-radius: 5px; padding: .9rem 1.15rem; margin: 1.4rem 0; font-size: .97rem;
+  }
+  .key p:first-child { margin-top: 0; } .key p:last-child { margin-bottom: 0; }
+  .warn { border-left-color: #a3271f; }
+  .glossary {
+    font-size: .9rem; color: #555; background: #f7f5f1; border-radius: 6px;
+    padding: 1rem 1.25rem; margin: 0 0 2.5rem;
+  }
+  .glossary div { margin: .3rem 0; }
+  .glossary code { background: #e9e5dd; }
+  footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid #e5e0d6; color: #777; font-size: .85rem; }
+  footer code { font-size: .9em; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Silent payments in the coinbase</h1>
+<p class="sub">
+  How a mining pool could pay its miners directly in the block reward without publishing
+  who got paid — and the one change to BIP&nbsp;352 that makes it possible.
+</p>
+
+<div class="glossary">
+  <div><code>G</code> — a fixed point on the curve that everyone agrees on.</div>
+  <div><code>a</code> lowercase — a private key (a secret number). <code>A</code> uppercase — its public key, where <code>A = a·G</code>.</div>
+  <div>You can compute <code>A</code> from <code>a</code>. You cannot go backwards.</div>
+</div>
+
+<h2><span class="n">01</span> The problem</h2>
+
+<p>
+  A pool that pays each miner in the coinbase writes every payout address into the block,
+  in public, forever. Anyone can see how many miners the pool has, what each one earns, and
+  — by watching over time — how each one's hashrate changes.
+</p>
+<p>
+  The fix would be for each payout to go to a fresh address that only that miner can
+  recognise. Not a list of addresses handed over in advance — a rule both sides can compute,
+  so that the pool can pay a fresh address every block and the miner can still find it.
+</p>
+
+<h2><span class="n">02</span> How silent payments normally do this</h2>
+
+<p>
+  A miner publishes <em>two</em> public keys instead of an address, and keeps both secrets:
+  a <strong>scan key</strong> for spotting payments and a <strong>spend key</strong> for
+  spending them.
+</p>
+
+<div class="math"><span class="c">miner publishes:</span>  B_scan = b_scan·G   B_spend = b_spend·G
+<span class="c">pool has:</span>         A      = a·G</div>
+
+<p>
+  Both sides can now compute the same secret without ever sending it, because scalar
+  multiplication doesn't care about the order you do it in:
+</p>
+
+<div class="math"><span class="c">pool computes:</span>   s = a·B_scan  =  a·(b_scan·G)
+<span class="c">miner computes:</span>  s = b_scan·A  =  b_scan·(a·G)
+                            <b>same point</b></div>
+
+<p>
+  The pool turns that shared secret into a number, and uses it to nudge the miner's spend key
+  sideways into a brand-new address:
+</p>
+
+<div class="math">t = hash(s)
+P = B_spend + t·G          <span class="c">← the pool pays this address</span></div>
+
+<p>
+  The miner computes the same <code>t</code>, so it recognises <code>P</code> in the block. And
+  it can spend from it, because the matching private key is just as simple:
+</p>
+
+<div class="math">p = b_spend + t
+
+<span class="c">check:</span> p·G = (b_spend + t)·G = B_spend + t·G = P  <b>✓</b></div>
+
+<div class="key">
+  <p>
+    <strong>Why two keys, not one.</strong> Finding the money needs <code>b_scan</code>.
+    Spending it needs <code>b_spend</code>. So <code>b_scan</code> can sit on an always-on
+    machine doing the searching, while <code>b_spend</code> stays offline. Someone who steals
+    the scanning key learns what you were paid but cannot touch it.
+  </p>
+</div>
+
+<p>
+  One thing is still missing. If the pool pays the same miner twice using the same
+  <code>a</code>, then <code>s</code> is the same, <code>t</code> is the same, and
+  <code>P</code> is the same address twice — which defeats the whole point. So the pool mixes
+  in something that never repeats. Normally that's the <em>outpoint</em>: a pointer to the
+  specific coin being spent, which by consensus can only ever be spent once.
+</p>
+
+<div class="math">h = hash(outpoint, A)
+s = h·a·B_scan</div>
+
+<h2><span class="n">03</span> Why this breaks in a coinbase</h2>
+
+<p>
+  The coinbase is the transaction that creates the block reward. It's special: it doesn't spend
+  anything. And that breaks the scheme in two separate places.
+</p>
+
+<p>
+  <strong>There's no <code>A</code>.</strong> Look again at what the miner needs:
+  <code>s = h·b_scan·A</code>. In an ordinary transaction the miner gets <code>A</code> for
+  free, because it's the public key of the coins being spent and it's right there in the
+  transaction. A coinbase spends no coins, so there is no public key anywhere in it. The miner
+  has nothing to do the maths with.
+</p>
+
+<p>
+  <strong>There's no unique outpoint.</strong> Every coinbase in history points at the same
+  placeholder — all zeroes. Using it as the nonce would give <em>every block</em> the same
+  <code>h</code>, so a pool paying a miner each block would pay the same address every time.
+</p>
+
+<h2><span class="n">04</span> The variation: two changes</h2>
+
+<p>
+  The second problem turns out not to be a problem at all. Since 2013 every block has been
+  required to write its own <strong>height</strong> into the coinbase. It's unique, it's
+  already there, and both sides know it.
+</p>
+
+<div class="math">h = hash(H, A_send)          <span class="c">H = the block height</span></div>
+
+<p>
+  The first problem is the real one, and the fix is to stop reusing a spending key for this
+  job. <strong>Give the pool a key whose only purpose is this calculation</strong> — call it
+  <code>a_send</code> — and publish <code>A_send</code> so miners can use it.
+</p>
+
+<div class="math"><span class="c">pool computes:</span>   s = h·<b>a_send</b>·B_scan
+<span class="c">miner computes:</span>  s = h·b_scan·<b>A_send</b>
+                            <b>same point</b>
+
+t = hash(s)
+P = B_spend + t·G       <span class="c">← this block's address for this miner</span>
+p = b_spend + t         <span class="c">← only the miner can compute this</span></div>
+
+<p>
+  That's the whole variation. Everything downstream is unchanged.
+</p>
+
+<h2><span class="n">05</span> Why the extra key is the point</h2>
+
+<p>
+  It looks like a workaround for a missing value. It's actually the more interesting half.
+</p>
+
+<p>
+  In ordinary silent payments, <code>a</code> is doing two unrelated jobs at once: it does this
+  shared-secret calculation, <em>and</em> it's the key that spends the sender's money. Those
+  jobs have opposite requirements. Money keys must be kept forever. A privacy key should be
+  destroyed the moment it's been used.
+</p>
+
+<p>
+  <code>a_send</code> spends nothing. Nobody's coins depend on it. So the pool can throw it
+  away once the block is paid — and once it's gone, nobody can ever recompute who was paid in
+  that block, including the pool itself, including under a court order.
+</p>
+
+<div class="key">
+  <p>
+    <strong>And if it leaks anyway, no money moves.</strong> An attacker holding
+    <code>a_send</code> can compute <code>s</code>, and therefore <code>t</code>, and therefore
+    work out which outputs went to which miner. But spending needs
+  </p>
+  <div class="math" style="margin:.8rem 0 .6rem">p = b_spend + t</div>
+  <p>
+    and <code>b_spend</code> never left the miner. <strong>Losing this key costs privacy, never
+    funds</strong> — exactly the trade the miner already gets from splitting scan from spend.
+    The variation just hands the sender the same deal.
+  </p>
+</div>
+
+<h2><span class="n">06</span> Where <code>A_send</code> comes from</h2>
+
+<p>
+  A fresh <code>a_send</code> per block means the matching <code>A_send</code> has to reach the
+  miners somehow — 33 bytes per block. There are a few places it can go, and they're not equally
+  good.
+</p>
+
+<p>
+  <strong>Down the mining connection.</strong> A pool is already talking to every one of its
+  miners, so it can simply send them the list of <code>A_send</code> values, one per upcoming
+  block. This costs nothing on-chain and is the best option. The catch is that a pool could serve
+  different lists to different miners to tell them apart, so the list needs to be published
+  somewhere public rather than whispered to each miner privately.
+</p>
+
+<p>
+  <strong>In the coinbase's spare bytes.</strong> Every block already has a small scratch area at
+  the start of the coinbase, and a second one attached to the segwit commitment. Either can hold
+  33 bytes. One constraint: while searching for a block, a miner rapidly rewrites part of that
+  scratch area (the <em>extranonce</em>) millions of times a second. <code>A_send</code> has to
+  sit outside those bytes — if it moved, every attempt would change all the payout addresses.
+</p>
+
+<p>
+  <strong>Not the pool's own fee output</strong> — and the reason is worth understanding. A
+  taproot output already <em>is</em> a public key sitting in the block, so it looks like a free
+  carrier. But for taproot, knowing the secret behind that visible key is exactly what lets you
+  spend the output. So if the fee output were <code>A_send</code>, then <code>a_send</code> would
+  be the key that spends the pool's fee — a key holding money, which can never be thrown away.
+  We'd be back where we started. <em>Visibility and spendability are the same property there.</em>
+  An older-style multisig output can do the job, because it shows both keys while letting either
+  one sign alone: put <code>A_send</code> and the pool's real key side by side, and the pool
+  spends with its own. That works, and costs 37 bytes more than a plain taproot output.
+</p>
+
+<div class="key">
+  <p>
+    <strong>The neat part: it can replace the pool's name tag.</strong> Pools already write a
+    short bit of text into that scratch area — <code>"/Foundry USA/"</code> and so on — to sign
+    their blocks. Put <code>A_send</code> there <em>instead</em>, and the 33 bytes cost nothing
+    extra, because they're taking a slot that was already spoken for.
+  </p>
+  <p>
+    The pool doesn't even lose its public identity. If its list of <code>A_send</code> values is
+    published — which it has to be anyway — then <em>"this block used entry number H from that
+    pool's list"</em> identifies it just as well as a text tag. Better, in fact: anyone can type
+    someone else's name into a block, but a copied <code>A_send</code> is inert, since you can't
+    derive a single payment from it without holding <code>a_send</code>. The cost is that block
+    explorers lose a human-readable label.
+  </p>
+</div>
+
+<div class="key warn">
+  <p>
+    <strong>The tempting shortcut doesn't work.</strong> Publishing one key and deriving the
+    rest looks free, and the maths does line up — the miner really can compute this block's key
+    from the first one:
+  </p>
+  <div class="math" style="margin:.8rem 0">a_H = a_0 + hash(H)          <span class="c">pool's secret for block H</span>
+A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span></div>
+  <p>
+    But read the first line again. Anyone who ever learns <code>a_0</code> can compute
+    <code>a_H</code> for <em>every</em> block, past and future, and unmask every payout the
+    pool ever made. The one property worth having is gone.
+  </p>
+  <p>
+    That's not a flaw in this particular formula — it's the general case. If the miner can
+    derive the key from something already published, then so can anyone holding the original
+    secret. Independent keys have to be independently published. There's no shortcut.
+  </p>
+</div>
+
+<h2><span class="n">07</span> What this does and doesn't buy</h2>
+
+<p>
+  It hides the payouts from <strong>everyone reading the blockchain</strong>. Each miner sees
+  its own payment and learns nothing about the others.
+</p>
+
+<p>
+  It does <strong>not</strong> hide anything from the pool. The pool computed the payouts, so it
+  knows exactly who is owed what — that's unavoidable in a scheme where one party decides the
+  amounts. What changes is that the pool no longer has to <em>publish</em> that knowledge, and
+  can choose not to keep the key that would let it prove any of it later.
+</p>
+
+<footer>
+  Status: worked out on paper and checked with test vectors in this directory. Not a
+  specification, not reviewed, not implemented anywhere.
+  Builds on <a href="https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki">BIP&nbsp;352</a>
+  (silent payments) and BIP&nbsp;34 (block height in the coinbase).
+  The change is that BIP&nbsp;352 deliberately uses the sender's <em>spending</em> key for the
+  shared secret, because that key is the only one a transaction reveals for free; a coinbase
+  reveals none, so the key has to be supplied on purpose — and once you're supplying it
+  anyway, it may as well be one that isn't holding money.
+</footer>
+
+</main>
+</body>
+</html>

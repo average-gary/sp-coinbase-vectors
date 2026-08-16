@@ -1,0 +1,1148 @@
+[
+ {
+  "comment": "Case 1 — sender-side ECDH/spend key split in an ORDINARY transaction. a_send is unrelated to the input private keys (they sign; only a_send does ECDH). Nonce stays BIP352-style outpoint_L so the split is isolated from coinbase mechanics. Sender-derived P_0 must equal receiver-scanned P_0.",
+  "case_type": "ordinary_split",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "outpoint_l",
+     "vin": [
+      {
+       "txid": "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16",
+       "vout": 0,
+       "scriptSig": "483046022100ad79e6801dd9a8727f342f31c71c4912866f59dc6e7981878e92c5844a0ce929022100fb0d2393e813968648b9753b7e9871d90ab3d815ebf91820d704b19f4ed224d621025a1e61f898173040e20616d43e9f496fba90338a39faa1ed98fcbaeee4dd9be5",
+       "txinwitness": "",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": "76a91419c2f3ae0ca3b642bd3e49598b8da89f50c1416188ac"
+        }
+       },
+       "private_key": "eadc78165ff1f8ea94ad7cfdc54990738a4c53f6e0507b42154201b8e5dff3b1"
+      },
+      {
+       "txid": "a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+       "vout": 0,
+       "scriptSig": "48304602210086783ded73e961037e77d49d9deee4edc2b23136e9728d56e4491c80015c3a63022100fda4c0f21ea18de29edbce57f7134d613e044ee150a89e2e64700de2d4e83d4e2103bd85685d03d111699b15d046319febe77f8de5286e9e512703cdee1bf3be3792",
+       "txinwitness": "",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": "76a914d9317c66f54ff0a152ec50b1d19c25be50c8e15988ac"
+        }
+       },
+       "private_key": "93f5ed907ad5b2bdbbdcb5d9116ebc0a4e1f92f910d5260237fa45a9408aad16"
+      }
+     ],
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "3a66dbcb2104b0d0a6a6617bc668f95dc778143277039be900ea7626b3509079",
+     "shared_secrets": [
+      "0267488a131db6d564e1d57bb0f05835c4f97fe52fb8d9937b96d3be4aa6b02bc2"
+     ],
+     "tweaks": [
+      "17448921f9c58cd326a4423500384f1c8cb50d26fd98dafec3bad0d2e9821287"
+     ],
+     "outputs": [
+      "1db3f57a9ca31695f17981e90a25cbf8c947b488881402400598ee4dd28e498f"
+     ],
+     "outpoint_l": "169e1e83e930853391bc6f35f605c6754cfead57cf8387639d3b4096c54f18f400000000"
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "vin": [
+      {
+       "txid": "f4184fc596403b9d638783cf57adfe4c75c605f6356fbc91338530e9831e9e16",
+       "vout": 0,
+       "scriptSig": "483046022100ad79e6801dd9a8727f342f31c71c4912866f59dc6e7981878e92c5844a0ce929022100fb0d2393e813968648b9753b7e9871d90ab3d815ebf91820d704b19f4ed224d621025a1e61f898173040e20616d43e9f496fba90338a39faa1ed98fcbaeee4dd9be5",
+       "txinwitness": "",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": "76a91419c2f3ae0ca3b642bd3e49598b8da89f50c1416188ac"
+        }
+       },
+       "private_key": "eadc78165ff1f8ea94ad7cfdc54990738a4c53f6e0507b42154201b8e5dff3b1"
+      },
+      {
+       "txid": "a1075db55d416d3ca199f55b6084e2115b9345e16c5cf302fc80e9d5fbf5d48d",
+       "vout": 0,
+       "scriptSig": "48304602210086783ded73e961037e77d49d9deee4edc2b23136e9728d56e4491c80015c3a63022100fda4c0f21ea18de29edbce57f7134d613e044ee150a89e2e64700de2d4e83d4e2103bd85685d03d111699b15d046319febe77f8de5286e9e512703cdee1bf3be3792",
+       "txinwitness": "",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": "76a914d9317c66f54ff0a152ec50b1d19c25be50c8e15988ac"
+        }
+       },
+       "private_key": "93f5ed907ad5b2bdbbdcb5d9116ebc0a4e1f92f910d5260237fa45a9408aad16"
+      }
+     ],
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "1db3f57a9ca31695f17981e90a25cbf8c947b488881402400598ee4dd28e498f"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "3a66dbcb2104b0d0a6a6617bc668f95dc778143277039be900ea7626b3509079",
+     "shared_secret": "0267488a131db6d564e1d57bb0f05835c4f97fe52fb8d9937b96d3be4aa6b02bc2",
+     "tweak": "17448921f9c58cd326a4423500384f1c8cb50d26fd98dafec3bad0d2e9821287",
+     "outputs": [
+      {
+       "pub_key": "1db3f57a9ca31695f17981e90a25cbf8c947b488881402400598ee4dd28e498f",
+       "priv_key_tweak": "17448921f9c58cd326a4423500384f1c8cb50d26fd98dafec3bad0d2e9821287",
+       "signature": "0429abd3498857118b9f72afa7e501f2556b67e24c9c4f50b4249d967cefbb4300de487791cda805bc7d30ef68a0589cbd2295096fd4e893526b86cc3b5281d6"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 2 — the construction in its native scope: coinbase input (null prevout 00..00:ffffffff), BIP 34 block height as the derivation nonce, A_send served out of band. input_hash = tagged_hash('SP-Coinbase/Inputs', ser32(H) || ser_P(A_send)); ecdh = input_hash*a_send*B_scan = input_hash*b_scan*A_send. Derivation and scanning must agree, and the output must be spendable (b_spend + t_0 signs).",
+  "case_type": "coinbase",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "coinbase": {
+      "prevout_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "prevout_vout": 4294967295,
+      "height": 840000
+     },
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ]
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+     "tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+     "outputs": [
+      {
+       "pub_key": "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+       "priv_key_tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+       "signature": "d1021ba1c8d784cef40e49ae876d7de74b8eaf5d50fd174c37215ea8b36bc61ae2f8f4cdb660d0ae26c31578a9d23733e26a9f33541bfe70a212ac3e85baa502"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 3 — one-payer fan-out: N = 5 miners, distinct scan keys, one a_send, one height. Each miner sits alone in its :304 group at k = 0, so each finds exactly its own output and zero others (the txOut[0] fee output is a decoy). The final receiving entry drops one miner's output and confirms another miner is unaffected — the :319 contiguity footgun does not apply to this shape.",
+  "case_type": "fan_out",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "coinbase": {
+      "prevout_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "prevout_vout": 4294967295,
+      "height": 840000,
+      "note": "txOut[0] is the pool's own fee output (decoy below); txOut[1..5] pay miners"
+     },
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      },
+      {
+       "scan_pub_key": "02e5f6a27e17454f175a38d4bc4eaf0f26e8266ee092f274e7561153726c7480d8",
+       "spend_pub_key": "02bdad47efc5eb2e5fd5c238b0b311715650be417fbed95bf640e71213d396a908"
+      },
+      {
+       "scan_pub_key": "033713e7edd535a0de96f2a6f636f64cd73dfa0e1780bfeef3feb5bcee7170bde5",
+       "spend_pub_key": "03c8cbe9f369500011ef083d73bf50f4876bf0bef9a46129e7b391035954d27efd"
+      },
+      {
+       "scan_pub_key": "03376ca76babc1d897eaada95a10ee90a19c2cad908faf2606b89c50d230d9f2c1",
+       "spend_pub_key": "034c64cb22ff0e71c088a1bb4c59b3df0e5031bcac6839962a7c250623a2703842"
+      },
+      {
+       "scan_pub_key": "02a072d0c6e10c62608fde52a2f6987af0b1fca78196eafb36079bdefbee9317d3",
+       "spend_pub_key": "030e4d0e13ba5fdd71da3f2df89471bcbbaed8d166f022110937ff9aa8eb50b79a"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+      "039f504c5f6d859cd72a06ef1e151e0cf1358cd6a2c963647e4605573b94059eb0",
+      "025f8b29a838bae547492ce971a84c677d7c5ec77d381d4c1f8a2eccf7cd649d79",
+      "03dde8b7d31cf48d0c8198f55c266ea7ef9352b94d0637031e641f45b9d6cb917f",
+      "02f87017f2d35177768c2bba82e63f835504e9b75db1183dc58515aaac9bbf4e09"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+      "bcc64f1f36f7ddeecd5c8b31e5766d114128f4c80db8a0a3a87993cbeb1faaf5",
+      "aa6322a3e7eb1b56d0a56ab49d00c20a3a1fc365779e04474dc72b49f80e5299",
+      "9a6bde94bedf7307f33a0e7a74c8592265cd36557f97650f7b21f08b35b0b3e5",
+      "72aca9eef0553446b24a3346c69e965f27d6ad5549770b491b4afb43af4f3a22"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ]
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+     "tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+     "outputs": [
+      {
+       "pub_key": "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+       "priv_key_tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+       "signature": "d1021ba1c8d784cef40e49ae876d7de74b8eaf5d50fd174c37215ea8b36bc61ae2f8f4cdb660d0ae26c31578a9d23733e26a9f33541bfe70a212ac3e85baa502"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "2469c5ea0d479be33e5ff8d661fd591a05ca490adce522d7fbf74f1c6a969d50",
+      "spend_priv_key": "db5879d3fa7bd17d6d61dc55a6d98dbdd2ba75a06fea1bb54e77a6c067e4b934"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "039f504c5f6d859cd72a06ef1e151e0cf1358cd6a2c963647e4605573b94059eb0",
+     "tweak": "bcc64f1f36f7ddeecd5c8b31e5766d114128f4c80db8a0a3a87993cbeb1faaf5",
+     "outputs": [
+      {
+       "pub_key": "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+       "priv_key_tweak": "bcc64f1f36f7ddeecd5c8b31e5766d114128f4c80db8a0a3a87993cbeb1faaf5",
+       "signature": "82651d269672b87ff8c0a92baaa8cfc77c3dad9d18edd3ad4a53ff198373baf9e48d62c50910a5b58c113ac3ad7cb0c4a593c7c9bab816f08d46572a36962792"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "cc4f67a95c21e712ace35d3eaa1333d583f38ed45ea7a6d55bd163d090ed146b",
+      "spend_priv_key": "c068eade895d93006a4df4a6dbcca6acedca66e3f518ca4b04d4c488aae88676"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "025f8b29a838bae547492ce971a84c677d7c5ec77d381d4c1f8a2eccf7cd649d79",
+     "tweak": "aa6322a3e7eb1b56d0a56ab49d00c20a3a1fc365779e04474dc72b49f80e5299",
+     "outputs": [
+      {
+       "pub_key": "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+       "priv_key_tweak": "aa6322a3e7eb1b56d0a56ab49d00c20a3a1fc365779e04474dc72b49f80e5299",
+       "signature": "66fb3dba6e3fe6f1385fd6a21eef8a45400989736d870e18b8007b0402536165cf4901654564d014deb1cdc82e572a4c3fe31af8868e80388133df966516feac"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "f2c0c99d4cdc3dd335c81348eee37e180e673451405d5ae9629c63739beb5670",
+      "spend_priv_key": "7bb6a8cc66ae89efeec2cd1f28b62269a0c1e6d5ba6db64097edc5d6493c83fc"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "03dde8b7d31cf48d0c8198f55c266ea7ef9352b94d0637031e641f45b9d6cb917f",
+     "tweak": "9a6bde94bedf7307f33a0e7a74c8592265cd36557f97650f7b21f08b35b0b3e5",
+     "outputs": [
+      {
+       "pub_key": "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+       "priv_key_tweak": "9a6bde94bedf7307f33a0e7a74c8592265cd36557f97650f7b21f08b35b0b3e5",
+       "signature": "5c9c69182137be2a70c7d34ba933e28f8894ebae044459f4a725497473dc4729ff03a27e3cb64515b2dc86864183afcaec76d1c78a518483ba1065fef61df0f0"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "e758fb1f4bb312331517a8e8e00de6a7cd80718a910f7527bf153561c18a3e88",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "aae3a4c816dc0f7e077d8ad4d916c773a97fdfbb09b1cbc3aa650a164afd1efe",
+      "spend_priv_key": "bb41e30c7d58cca1add5b928f557b0b693d95a2072c90ce0d695158195b91779"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "02f87017f2d35177768c2bba82e63f835504e9b75db1183dc58515aaac9bbf4e09",
+     "tweak": "72aca9eef0553446b24a3346c69e965f27d6ad5549770b491b4afb43af4f3a22",
+     "outputs": [
+      {
+       "pub_key": "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359",
+       "priv_key_tweak": "72aca9eef0553446b24a3346c69e965f27d6ad5549770b491b4afb43af4f3a22",
+       "signature": "ef3a6816978cae4ed9d680a835986055fb805b5745ce564c42a91cd4e678c960dc9c4571065c3a3fe2e5886cfbb5ecfbc2f6dc5ee2fd97a56c679c39c68b3d6a"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+      "fdf33b3f0f62c9093ea35b1d4a5eac0a60a77edbdd2fd3ca41834c84652f1527",
+      "0dd95cc52f4de3ce7928a5f2c2987a0f927715fa7d7698c2d8958f4ba07e9696",
+      "72fa04c1e38d8df257fdd251aad4d0d4d12236399a245cccf30034ba56887359"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+     "tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+     "outputs": [
+      {
+       "pub_key": "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+       "priv_key_tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+       "signature": "d1021ba1c8d784cef40e49ae876d7de74b8eaf5d50fd174c37215ea8b36bc61ae2f8f4cdb660d0ae26c31578a9d23733e26a9f33541bfe70a212ac3e85baa502"
+      }
+     ]
+    },
+    "comment": "output for miner index 2 dropped from the tx; miner index 0 must still find theirs"
+   }
+  ]
+ },
+ {
+  "comment": "Case 4 — nonce distinctness, both directions. Entries 0 vs 1: same a_send at heights H and H+1 must give distinct outputs. Entries 0 vs 2: same height with two different a_send must give distinct outputs. (input_hash commits to both H and A_send, so either difference alone rerandomizes.)",
+  "case_type": "nonce_distinctness",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218"
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "height": 840001,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218"
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "61e326dc297e9773acfb2bb33a86085706a4a4052ab2b0b8c64de36ed7b18944",
+     "shared_secrets": [
+      "030613460efc2d18082f144bfaf8ebb02c7fdc1d5e385b567958cb7449f04f9213"
+     ],
+     "tweaks": [
+      "6501d8c9355bb4df3c1acbfa558e570a32f26e1586e1ea3c348e5e0a6d6e3761"
+     ],
+     "outputs": [
+      "84f1e3cbe69cfec80bd2a0d252d4ce9aa0314e3e49d33235e37a9c9b3b21559b"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "height": 840000,
+     "a_send": "409248cc0303812851ac29b0ea0947b3cf33217665873f4989cba1319e0b4a34"
+    },
+    "expected": {
+     "A_send": "8fd5df15d10eab18c4c092b2aaf93615b90a51846e29caf2d69d5406f7b8d12c",
+     "a_send_negated": true,
+     "input_hash": "01ec93b31d4e7525a31ec658ad609d35dd93b3b85f3e06585fb56d8143b1d45c",
+     "shared_secrets": [
+      "0340bb0a374077a446cc51c79746eef5f552800dbbe8ca61410b0c1c372d9cc957"
+     ],
+     "tweaks": [
+      "199f1eea884ba1167b9b477e2362578be6ec1d7d70b957df3ad315ad664f6445"
+     ],
+     "outputs": [
+      "dde2d2473ca380f0a0ea269b9311deba4b07e4256f48c28e46e7cceebd92448c"
+     ]
+    }
+   }
+  ],
+  "receiving": []
+ },
+ {
+  "comment": "Case 5 — NEGATIVE CONTROL: unmodified BIP 352 on a coinbase. get_pubkey_from_input finds no pubkey (no prevout scriptPubKey, no witness key, no scriptSig key — reference.py:37-88, every branch tests vin.prevout), so the eligibility gate at bip-0352.mediawiki:193 ('at least one input from the Inputs For Shared Secret Derivation list') fails: the sender generates no outputs and the receiver skips the transaction. This makes the original blocker executable.",
+  "case_type": "vanilla_coinbase_reject",
+  "sending": [
+   {
+    "given": {
+     "vin": [
+      {
+       "txid": "0000000000000000000000000000000000000000000000000000000000000000",
+       "vout": 4294967295,
+       "scriptSig": "0340d10c2f73702d636f696e626173652d766563746f72732f",
+       "txinwitness": "01200000000000000000000000000000000000000000000000000000000000000000",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": ""
+        }
+       }
+      }
+     ],
+     "recipients": []
+    },
+    "expected": {
+     "input_pub_keys": [],
+     "outputs": [
+      []
+     ]
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "vin": [
+      {
+       "txid": "0000000000000000000000000000000000000000000000000000000000000000",
+       "vout": 4294967295,
+       "scriptSig": "0340d10c2f73702d636f696e626173652d766563746f72732f",
+       "txinwitness": "01200000000000000000000000000000000000000000000000000000000000000000",
+       "prevout": {
+        "scriptPubKey": {
+         "hex": ""
+        }
+       }
+      }
+     ],
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "de95ed1101c35079f5f746df2b463d3c3104d5f7fb3a3ca9de4397e23beeb856"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     },
+     "labels": []
+    },
+    "expected": {
+     "outputs": []
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 6 — NEGATIVE CONTROL: the 2026-07-29 note's claim, executed. If the coinbase's constant null prevout (00..00:ffffffff) is used as the nonce instead of the BIP 34 height, input_hash is identical in every block and two different blocks collide to the SAME P_0 — forced address reuse. The fix (height nonce) is asserted as a control in the runner.",
+  "case_type": "constant_nonce_collision",
+  "expected_failure": "sending[0].expected.outputs == sending[1].expected.outputs (identical across heights: address reuse)",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "constant_null_outpoint",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "height": 840000
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "98918a8e7985c1238805741886bb14b250bf2930bb1076ad09647e76e39e324e",
+     "shared_secrets": [
+      "03ddc28aa085ea01d22789c0b5af2c2e71b025739b956d582c21495931adab3579"
+     ],
+     "tweaks": [
+      "c607bf4914b5b62e4e0d6006c51d64cc16f8c8062b1e19ff67a94d2f514c80f2"
+     ],
+     "outputs": [
+      "2c0ef53bd111ba86a4d8dc4e1a7aca67414646b77c477a4d179daa845c9e3c96"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "constant_null_outpoint",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "height": 840001
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "98918a8e7985c1238805741886bb14b250bf2930bb1076ad09647e76e39e324e",
+     "shared_secrets": [
+      "03ddc28aa085ea01d22789c0b5af2c2e71b025739b956d582c21495931adab3579"
+     ],
+     "tweaks": [
+      "c607bf4914b5b62e4e0d6006c51d64cc16f8c8062b1e19ff67a94d2f514c80f2"
+     ],
+     "outputs": [
+      "2c0ef53bd111ba86a4d8dc4e1a7aca67414646b77c477a4d179daa845c9e3c96"
+     ]
+    }
+   }
+  ],
+  "receiving": []
+ },
+ {
+  "comment": "Case 7 — NEGATIVE CONTROL: the why_include_A attack (bip-0352.mediawiki:92) transposed to the split. If input_hash omits the key (entry 1) or commits to a static third key like the pool fee key (entry 2), a sender choosing a_send' = input_hash*a_send/input_hash' forces the SAME shared secret at a different height — address reuse. The attack scalar is ground to even Y so the parity rule cannot be blamed. Entry 3 is the control: with input_hash bound to A_send, the transplanted scalar produces a different output (the real attack would require solving a_send' = f(a_send'*G), a dlog fixed point). Binding to A_send kills the replay.",
+  "case_type": "input_hash_replay",
+  "expected_failure": "entries 1 and 2 collide with entry 0 (reuse); entry 3 (correct binding) must NOT collide",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height_only_unbound",
+     "height": 840003,
+     "a_send": "ee492de59a25489fd3d4e6ac75c5a736e6d93e653877a28b632f9d00b55e0067",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "597879d57e754a5de4d0493b9e7f8e34e77813459b3d2eb23274e1aedd32e28c",
+     "a_send_negated": false,
+     "input_hash": "ed964dd612127efd62a1f4ce2269913eee815bf32c88392f1fc9b5d3307f540c",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "wrong_key",
+     "height": 840001,
+     "bound_key": "8a1616f49b41911e8cb7b0763afc8dc58c924dda2dca2f0965d0d537108b1620",
+     "a_send": "c8070d2a860f9a5b0fa2d8a2a9d4ee7d0c75d3ee78cb90fcea35d4ec60166d65",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "846ef8dfb89ca9354d756b34cd7f2786188bea2dbd7c2209d1dcb482e327900e",
+     "a_send_negated": false,
+     "input_hash": "6b15bc37f231017c9699b0664968ba55e24515ff180caff7ae7d9c72b940f00e",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height",
+     "height": 840003,
+     "a_send": "ee492de59a25489fd3d4e6ac75c5a736e6d93e653877a28b632f9d00b55e0067",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "597879d57e754a5de4d0493b9e7f8e34e77813459b3d2eb23274e1aedd32e28c",
+     "a_send_negated": false,
+     "input_hash": "0799435f171b42c00d3661f35523912d2fd56161464c5ae5198bb56b7449fd50",
+     "shared_secrets": [
+      "02bca7d9cd97bc294fe60a7972ddea06f3f3cae005864a88d76176c9514799cb7e"
+     ],
+     "tweaks": [
+      "88e74410032c7896409009399acf94641bd3f707cf5b0271e6a2b50711683384"
+     ],
+     "outputs": [
+      "93a00cde570e2fd3833ec89b26f6acd28bff58a314c7dac5edb160525cb7dc5f"
+     ]
+    }
+   }
+  ],
+  "receiving": []
+ },
+ {
+  "comment": "Case 8 — NEGATIVE CONTROL: A_send is x-only on the wire, so the even-Y rule (bip-0352.mediawiki:299 transposed to the sender key) is load-bearing. The raw a_send below has odd Y. Entry 0 omits the negation: the sender's ECDH point is the odd-Y point and its ser_P inside input_hash starts 0x03, while the scanner canonicalizes the x-only wire key to even Y (0x02) — scan misses. Entry 1 applies the rule: identical wire bytes (x is unchanged by negation), scan hits. The runner asserts the raw key's Y is odd, so the vector's precondition is checked, not assumed.",
+  "case_type": "odd_y_scan_miss",
+  "expected_failure": "receiving[0] finds nothing (scan miss) with negation omitted; receiving[1] finds the output with the rule applied",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height_even_y_omitted",
+     "height": 840000,
+     "a_send": "b6dc0ce549ac617750757fe8034b49bca49dd1a9bd19e0870ad2edb967e11374",
+     "apply_even_y_rule": false,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "5477ca658e13631de26abce81b6945c8fc02bf12a957ce401afe46dcf7cd6889",
+     "a_send_negated": false,
+     "input_hash": "5a1c658a3665770f554adcc2274095b9d7064ed18254b543f99ef3943903fef5",
+     "shared_secrets": [
+      "02fa4bb8be65a54091256e8171fba1b408722c47371a92e4422e2def7b2cc4dc88"
+     ],
+     "tweaks": [
+      "351d57669a45bbf0801a17e1c108ad454bdf100cd86a4b621edce985df3669b9"
+     ],
+     "outputs": [
+      "4028944191f855eaea3293242f6645a8b5810254c62591b46c55ffcdb8ea63b3"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height",
+     "height": 840000,
+     "a_send": "b6dc0ce549ac617750757fe8034b49bca49dd1a9bd19e0870ad2edb967e11374",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "5477ca658e13631de26abce81b6945c8fc02bf12a957ce401afe46dcf7cd6889",
+     "a_send_negated": true,
+     "input_hash": "2d593d66b06550fce3f7c0c5012d083b01d967f17f31b6e68eb592b159553465",
+     "shared_secrets": [
+      "034ff9a8466748dc95d0d04d425f6c4a512833acb3b4a5bf422db0c8905def391a"
+     ],
+     "tweaks": [
+      "f62c0399ea09f8e4eed6fd3d40975980cd206742e03b6d712b79f87202123f32"
+     ],
+     "outputs": [
+      "85aaa6df22fc83d6d4cb980cd58bce4a0f1b5660b9476dcb9263908c67f117d6"
+     ]
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "5477ca658e13631de26abce81b6945c8fc02bf12a957ce401afe46dcf7cd6889",
+     "outputs": [
+      "4028944191f855eaea3293242f6645a8b5810254c62591b46c55ffcdb8ea63b3"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "2d593d66b06550fce3f7c0c5012d083b01d967f17f31b6e68eb592b159553465",
+     "shared_secret": "034ff9a8466748dc95d0d04d425f6c4a512833acb3b4a5bf422db0c8905def391a",
+     "tweak": "f62c0399ea09f8e4eed6fd3d40975980cd206742e03b6d712b79f87202123f32",
+     "outputs": []
+    }
+   },
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "5477ca658e13631de26abce81b6945c8fc02bf12a957ce401afe46dcf7cd6889",
+     "outputs": [
+      "85aaa6df22fc83d6d4cb980cd58bce4a0f1b5660b9476dcb9263908c67f117d6"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "2d593d66b06550fce3f7c0c5012d083b01d967f17f31b6e68eb592b159553465",
+     "shared_secret": "034ff9a8466748dc95d0d04d425f6c4a512833acb3b4a5bf422db0c8905def391a",
+     "tweak": "f62c0399ea09f8e4eed6fd3d40975980cd206742e03b6d712b79f87202123f32",
+     "outputs": [
+      {
+       "pub_key": "85aaa6df22fc83d6d4cb980cd58bce4a0f1b5660b9476dcb9263908c67f117d6",
+       "priv_key_tweak": "f62c0399ea09f8e4eed6fd3d40975980cd206742e03b6d712b79f87202123f32",
+       "signature": "d59d50cda21d3b02838c7c23b79645fd439a2756ccf0a5ec4712abaaad1c3d7c3a4fa627afe09eafd45490693d93f284fe857d82921e8731ce1b4f5bb8117c50"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 9 — NEGATIVE CONTROL: the forward-secrecy dichotomy of Lesson 8, executable. If the published per-height list is compressed as A_H = A_0 + H(A_0 || H)*G, then a_H = a_0 + H(A_0 || H): the scheme is group-LINEAR, so compromising a_0 recovers every epoch secret a_H and every past ecdh — retroactive deanonymization of every payout, exactly the failure the split was meant to fix. The runner recovers a_H from a_0 and public data alone, re-derives the shared secret, and detects the past output. NOTE: this demonstrates the linear case is broken; it does NOT prove the non-linear case (e.g. hash-to-curve) is unusable — that case fails differently (nobody, sender included, knows the dlog). The fix is an uncompressed list: 33 B per epoch over the stratum channel.",
+  "case_type": "forward_secrecy_compression",
+  "expected_failure": "a_0 alone recovers every a_H (runner asserts a_recovered * G == A_H and re-derives the exact on-chain output)",
+  "setup": {
+   "compression_rule": "A_H = A_0 + tagged_hash('SP-Coinbase/CompressedList', ser_P(A_0) || ser32(H)) * G",
+   "a_0": "1a257463571c17b55a3474aeec1b89c25a5a00805c9248c717a5b0f5d003342b",
+   "A_0": "2f19cffbc801a803f79e09a0bf4c3044b6616b8f420b0fd86e2facef89f7eb44"
+  },
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "height": 840000,
+     "a_send": "4317f8aeb4bc7bff9b1d38fd0954e8c7b67cd71b74ec12a389d7b2a510246930",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "3cdf810dccd289fec77ef5020a48d89cf6d6e3ea23d81f6a1cb9b6a20415b0e3",
+     "a_send_negated": false,
+     "input_hash": "b5d58afb5800ea48dc5413ba47b1172d5244c2f2f8a94fe5c4507134cb1c2727",
+     "shared_secrets": [
+      "02be983abeb804dd9feb0517be882ce933c56a582c4c9c927877371312b45791ad"
+     ],
+     "tweaks": [
+      "2c6123e7ebac98d7b46e285c9008a810f76a705ca95c6f6fef3b3794c6d4fe35"
+     ],
+     "outputs": [
+      "faa2ed48e6ff97ecade9542194b8add6a5937dd3e1e3539fdcb88cd6e7460724"
+     ]
+    }
+   },
+   {
+    "given": {
+     "nonce_rule": "height",
+     "height": 840001,
+     "a_send": "998d5a02865e23390efcc4a6e1253ba3bf49a71ba8ec1d84ef47c88edda0f08a",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ]
+    },
+    "expected": {
+     "A_send": "ae13131b8653ebbbbc1c2ef54ddb4f34efd4ca76e6a9cdbd7adb423b9f5c7223",
+     "a_send_negated": false,
+     "input_hash": "10cfe1ef02d27140866c13247c625d35772677aa48aaecaee4d502f1a7e40603",
+     "shared_secrets": [
+      "0290c14659c0bbbe8609a926cd13cd36553a0dc58623dedbb39e9b98509185b3cb"
+     ],
+     "tweaks": [
+      "82bcf67a008efc069a4b0178e7ea86c57ba27494753b3fd6844387c0447c98c6"
+     ],
+     "outputs": [
+      "fd89d73f1d11f55041ef2c9d005c93023f1c8704ba7285bf9bce9b30373b43fb"
+     ]
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send": "3cdf810dccd289fec77ef5020a48d89cf6d6e3ea23d81f6a1cb9b6a20415b0e3",
+     "outputs": [
+      "faa2ed48e6ff97ecade9542194b8add6a5937dd3e1e3539fdcb88cd6e7460724"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "b5d58afb5800ea48dc5413ba47b1172d5244c2f2f8a94fe5c4507134cb1c2727",
+     "shared_secret": "02be983abeb804dd9feb0517be882ce933c56a582c4c9c927877371312b45791ad",
+     "tweak": "2c6123e7ebac98d7b46e285c9008a810f76a705ca95c6f6fef3b3794c6d4fe35",
+     "outputs": [
+      {
+       "pub_key": "faa2ed48e6ff97ecade9542194b8add6a5937dd3e1e3539fdcb88cd6e7460724",
+       "priv_key_tweak": "2c6123e7ebac98d7b46e285c9008a810f76a705ca95c6f6fef3b3794c6d4fe35",
+       "signature": "526439e09eae4eac7c7534d48106d51e4d183188530fa9d2a0ddfa5e51ce6eb8bbca0dbefaf63b091e14c573bc28e443cdaa2c86b12791c9bd4b5230dab3ad67"
+      }
+     ]
+    }
+   },
+   {
+    "given": {
+     "height": 840001,
+     "A_send": "ae13131b8653ebbbbc1c2ef54ddb4f34efd4ca76e6a9cdbd7adb423b9f5c7223",
+     "outputs": [
+      "fd89d73f1d11f55041ef2c9d005c93023f1c8704ba7285bf9bce9b30373b43fb"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "10cfe1ef02d27140866c13247c625d35772677aa48aaecaee4d502f1a7e40603",
+     "shared_secret": "0290c14659c0bbbe8609a926cd13cd36553a0dc58623dedbb39e9b98509185b3cb",
+     "tweak": "82bcf67a008efc069a4b0178e7ea86c57ba27494753b3fd6844387c0447c98c6",
+     "outputs": [
+      {
+       "pub_key": "fd89d73f1d11f55041ef2c9d005c93023f1c8704ba7285bf9bce9b30373b43fb",
+       "priv_key_tweak": "82bcf67a008efc069a4b0178e7ea86c57ba27494753b3fd6844387c0447c98c6",
+       "signature": "1a9574f15d485c333a499f822161e2b952d94eef2e91a3db57312ea2dbe6ab01e2a651b5024cbba6eb199b1eb0bcb9c96dc314c1c62688c2779815a44f7180c9"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 11 — A_send conveyed by the pool's own fee output, no separate carrier. A taproot output CANNOT do this (it exposes one group element and that element's dlog is the keypath spend secret — visibility and spendability are one property), but a BARE 1-of-2 MULTISIG reveals its keys while letting either holder sign alone: txOut[0] = OP_1 <A_send> <A_pool> OP_2 OP_CHECKMULTISIG. The scanner parses key 0 and runs the unchanged construction; the pool spends with a_pool only, so a_send is erasable at block-found (full split, full forward secrecy). Cost vs P2TR fee output: +37 B ≈ 148 WU — 16 WU dearer than the witness-commitment optional-data field (132 WU), which is why the table ranks the commitment slot first among on-chain carriers; both lose to the stratum list (0 on-chain bytes). The runner asserts the script's shape (m = 1: a_send is never needed to spend), that A_send survives the scriptPubKey round-trip byte-exactly, and that the miner's scan + spend path is untouched.",
+  "case_type": "multisig_fee_output",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "coinbase": {
+      "prevout_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "prevout_vout": 4294967295,
+      "height": 840000,
+      "note": "txOut[0] IS the carrier: OP_1 <A_send> <A_pool> OP_2 OP_CHECKMULTISIG, paying the pool's fee to itself"
+     },
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "fee_output": {
+      "script_type": "p2ms_1_of_2",
+      "pool_pub_key": "03bda512c6f9b5f3630396afc054248fc04ddd56343092291e6cdbffe16f4f0c39"
+     }
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ],
+     "fee_output_scriptPubKey": "512102a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d2103bda512c6f9b5f3630396afc054248fc04ddd56343092291e6cdbffe16f4f0c3952ae"
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send_source": {
+      "type": "fee_output_scriptPubKey",
+      "scriptPubKey": "512102a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d2103bda512c6f9b5f3630396afc054248fc04ddd56343092291e6cdbffe16f4f0c3952ae",
+      "key_index": 0
+     },
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+     "tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+     "outputs": [
+      {
+       "pub_key": "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+       "priv_key_tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+       "signature": "d1021ba1c8d784cef40e49ae876d7de74b8eaf5d50fd174c37215ea8b36bc61ae2f8f4cdb660d0ae26c31578a9d23733e26a9f33541bfe70a212ac3e85baa502"
+      }
+     ]
+    }
+   }
+  ]
+ },
+ {
+  "comment": "Case 12 — A_send carried by the coinbase scriptSig, AS the pool tag: scriptSig = BIP34 height push || extranonce || push33(A_send), 46 B total, nothing else. The tag slot itself carries the key, so the scriptSig budget contention dissolves (no separate 15-40 B pool string). With the pubkey list served publicly — which the design already requires against the list-partition attack — 'block H's tag == entry H of pool X's published list' is unforgeable attribution, so the pool keeps a public identity without a human-readable string. The runner asserts the consensus budget (2-100 B), the BIP34 height push round-trip (little-endian on the wire, ser32 big-endian inside input_hash), that the A_send region is DISJOINT from the miner-rolled extranonce region (Lesson 4: rolling never rebuilds outputs), and that A_send parses byte-exactly. Tradeoffs are attribution-shaped, not cryptographic: explorers lose the ASCII tag, and public hashrate attribution now flows through the list. Merged-mining commitments, where used, still need their own bytes.",
+  "case_type": "coinbase_scriptSig_carrier",
+  "sending": [
+   {
+    "given": {
+     "nonce_rule": "height",
+     "coinbase": {
+      "prevout_txid": "0000000000000000000000000000000000000000000000000000000000000000",
+      "prevout_vout": 4294967295,
+      "height": 840000,
+      "note": "scriptSig = height push || extranonce || push33(A_send); the A_send push IS the pool tag — nothing else. Fee output pays the pool to an ordinary P2TR key (decoy below), unconstrained."
+     },
+     "height": 840000,
+     "a_send": "fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218",
+     "apply_even_y_rule": true,
+     "recipients": [
+      {
+       "scan_pub_key": "02214cdea253c3bc36f2c9ca36fb37430855bf74909b84e690e44e58e2850c46ee",
+       "spend_pub_key": "0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694"
+      }
+     ],
+     "scriptsig_carrier": {
+      "extranonce": "0102030405060708"
+     }
+    },
+    "expected": {
+     "A_send": "a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+     "a_send_negated": false,
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secrets": [
+      "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f"
+     ],
+     "tweaks": [
+      "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31"
+     ],
+     "outputs": [
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ],
+     "coinbase_scriptSig": "0340d10c01020304050607082102a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d"
+    }
+   }
+  ],
+  "receiving": [
+   {
+    "given": {
+     "height": 840000,
+     "A_send_source": {
+      "type": "coinbase_scriptSig",
+      "scriptSig": "0340d10c01020304050607082102a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d",
+      "offset": 12
+     },
+     "outputs": [
+      "cb93d6eeb46e5080fdb0e22bf93d3e273f6cb4b14935e7ca207276121b495292",
+      "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76"
+     ],
+     "key_material": {
+      "scan_priv_key": "bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173",
+      "spend_priv_key": "8f617c2b760421b3ee4c8105bf4f1eb6376eecc84b84e27ef14d863d8fc8b3d2"
+     }
+    },
+    "expected": {
+     "input_hash": "a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad",
+     "shared_secret": "022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f",
+     "tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+     "outputs": [
+      {
+       "pub_key": "20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76",
+       "priv_key_tweak": "bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31",
+       "signature": "d1021ba1c8d784cef40e49ae876d7de74b8eaf5d50fd174c37215ea8b36bc61ae2f8f4cdb660d0ae26c31578a9d23733e26a9f33541bfe70a212ac3e85baa502"
+      }
+     ]
+    }
+   }
+  ]
+ }
+]
