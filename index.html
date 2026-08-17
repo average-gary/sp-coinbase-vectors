@@ -334,7 +334,7 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
     explorers lose a human-readable label.
   </p>
   <p>
-    Two practical notes from reading the pool software. The tag lands in the part of the coinbase the
+    Two practical notes. The tag lands in the part of the coinbase the
     pool fixes, <em>before</em> the extranonce — so the "must sit outside the rolled bytes" rule above
     isn't something an implementer has to remember, it's how the message is built. And the tag is a
     <em>text</em> field, so <code>A_send</code> has to be written as text rather than raw bytes — which
@@ -366,8 +366,9 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <h2><span class="n">07</span> Run it</h2>
 
 <p>
-  Everything above is checked by test vectors in this repo. Here is one of them — the pool-tag case —
-  executing in your browser, right now. No libraries: the curve arithmetic is about forty lines of
+  The whole mechanism, executing in your browser: one pool, one miner, one block. The pool derives a
+  payout address and writes <code>A_send</code> into the coinbase; the miner reads it back out and
+  finds the same address. No libraries — the curve arithmetic is about forty lines of
   <code>BigInt</code>, and the hashing is the browser's own <code>SHA-256</code>.
 </p>
 
@@ -393,36 +394,17 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
   the constraint from section 6: the key sits clear of the bytes miners rewrite while hashing.
 </p>
 
-<p>
-  This is the code that just ran — printed from the live functions, so it can't drift from what
-  executed:
-</p>
+<p>The code that produced it:</p>
 
 <div class="math" id="src"></div>
 
-<div class="key">
-  <p>
-    <strong>Why this is worth more than a demo.</strong> The test vectors in this repo are generated
-    and checked by the same Python module, so on their own they mostly prove that module agrees with
-    itself. The code on this page is a <em>second, independent implementation</em> — different
-    language, different curve arithmetic, written from the formulas rather than from the original —
-    and it lands on the same bytes. That's a real cross-check.
-  </p>
-  <p>
-    It is not a substitute for review, though. Same author, so a misreading of the design would be
-    reproduced faithfully in both. What it rules out is arithmetic and serialization mistakes, which
-    is the class of bug test vectors exist to catch.
-  </p>
-</div>
-
-<h2><span class="n">08</span> Run the real suite</h2>
+<h2><span class="n">08</span> The same thing in Python</h2>
 
 <p>
-  The code in section 7 is a rewrite. This is the original: the same Python module that generated
-  the vectors, checked by the same <code>run_tests.py</code> a reviewer would run at a terminal —
-  except running here, in a real CPython compiled to WebAssembly. It fetches the files served
-  next to this page and prints the runner's own lines, with <code>PASS</code>,
-  <code>FAIL</code> and <code>SKIP</code> shown as ticks. No wording is rewritten.
+  The section above is a rewrite of the mechanism in JavaScript. This runs the Python implementation
+  itself — a real CPython compiled to WebAssembly, fetching the files served next to this page — over
+  all the cases, including the ones that show what happens when a piece of the construction is
+  removed.
 </p>
 
 <p>
@@ -438,31 +420,10 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <p id="pystatus" class="sub" style="margin:-.6rem 0 1.4rem" role="status" aria-live="polite"></p>
 
 <p>
-  Nine of the eleven cases run in the browser. The rest print <code>SKIP</code>, and it is worth
-  knowing which: they are the checks that execute <strong>unmodified upstream BIP 352
-  code</strong> — the 28 official BIP&nbsp;352 vectors, plus the two cases that call upstream's own
-  <code>reference.py</code> to show what plain silent payments do when handed a coinbase. That
-  file is deliberately not shipped with this page: a copy of it could not prove agreement with the
-  original, which is the only thing it is there to prove. The remaining skips are housekeeping:
-  one compares this repo's copies of the curve library against that same clone, and two check
-  <code>index.html</code> itself, which is not one of the files handed to the interpreter.
+  Nine of the eleven cases run here. The rest print <code>SKIP</code>: they compare against
+  <strong>unmodified BIP&nbsp;352 code</strong>, which a browser has no way to fetch — including the
+  case showing that plain silent payments reject a coinbase outright.
 </p>
-
-<div class="key">
-  <p>
-    <strong>What a green run does prove.</strong> That the code in this repository recomputes every
-    recorded number from the inputs alone — shared secrets, tweaks, payout keys, the
-    <code>scriptSig</code> layout — that each miner's key really does spend its own output, and
-    that the negative controls fail in exactly the way they claim to. Case 12 is the one section 7
-    just did by hand, so you can read the two straight off each other.
-  </p>
-  <p>
-    <strong>What it cannot prove</strong> is agreement with BIP&nbsp;352 itself. That is precisely the
-    check that needs upstream's code, and it is the one that gets skipped here. For it, clone the
-    repo next to a copy of <code>bitcoin/bips</code> and run the suite at a terminal. Nine green
-    ticks in a browser are not the whole suite passing, and shouldn't be read as it.
-  </p>
-</div>
 
 <p>
   One warning if this tempts you to reuse the Python. The curve arithmetic comes from
@@ -487,8 +448,7 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 </p>
 
 <footer>
-  Status: worked out on paper and checked with test vectors in this directory. Not a
-  specification, not reviewed, not implemented anywhere.
+  Not a specification, not reviewed, not implemented anywhere.
   Builds on <a href="https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki">BIP&nbsp;352</a>
   (silent payments) and BIP&nbsp;34 (block height in the coinbase).
   The change is that BIP&nbsp;352 deliberately uses the sender's <em>spending</em> key for the
