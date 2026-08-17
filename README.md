@@ -9,9 +9,11 @@ on paper and then pinned down in code, so that the spec diff it needs can be wri
 something executable.
 
 👉 **[`index.html`](index.html) is a plain-English explainer** of what the variant is and how the
-maths works, and it **runs case 12 in the browser** — no libraries, ~40 lines of `BigInt` curve
-arithmetic plus the browser's own SHA-256. Start there. (Needs a secure context for
-`crypto.subtle`, so serve it over `https://` or `localhost`, not `file://`.)
+maths works, and it runs the vectors two ways in the browser: **case 12 with no libraries at all**
+(~40 lines of `BigInt` curve arithmetic plus the browser's own SHA-256), and — on a button press,
+never on load — **this repo's real Python suite**, on a CPython compiled to WebAssembly (Pyodide
+from a CDN, plus the `vendor/` copies of the curve library). Start there. (Needs a secure context
+for `crypto.subtle`, so serve it over `https://` or `localhost`, not `file://`.)
 
 ## The construction
 
@@ -37,8 +39,13 @@ Two changes from BIP 352:
 ## Running
 
 Requires Python 3 and a clone of [bitcoin/bips](https://github.com/bitcoin/bips) as a sibling
-directory. No third-party packages: the vendored `secp256k1lab` inside the bips repo does the
-curve maths.
+directory. No packages to install: `secp256k1lab` does the curve maths, taken from the bips clone
+when it is there and from [`vendor/`](vendor/) when it is not. The `vendor/` copies are
+byte-identical to bips commit [`60f5b33`](https://github.com/bitcoin/bips/commit/60f5b33)
+(2026-08-12) and stay that way — `run_tests.py` hashes them against your clone and fails on drift.
+`secp256k1lab` is MIT (© The Bitcoin Core developers, and the secp256k1lab developers — see
+[`vendor/COPYING`](vendor/COPYING)), as is `ripemd160.py` (© Pieter Wuille); `bitcoin_utils.py` is
+BIP 352's own BSD-2-Clause.
 
 ```sh
 python3 run_tests.py                  # baseline + 11 cases, ~70 s
@@ -48,6 +55,24 @@ python3 generate_vectors.py           # regenerate the JSON
 BIPS_REPO=/path/to/bips python3 run_tests.py   # if bips is elsewhere
 ```
 
+Without the clone, 9 of the 11 cases still run off `vendor/` — but the run **exits 1**, because
+the checks that go quiet are exactly the ones that anchor this variant to upstream BIP 352 (the
+baseline, cases 1 and 5, and the `vendor/` drift guard). Pass `--allow-skips` to accept that. The
+in-browser run is the same code with the same skips, and exits 0 there: no clone can exist inside
+a browser, so `run_tests.py` treats the absence as structural rather than as a mistake
+(`sys.platform == "emscripten"`). `test_wasm.mjs` runs that path headlessly:
+
+```sh
+npm i pyodide@314.0.4 && node test_wasm.mjs   # SKIPs (exit 0) if pyodide is absent
+```
+
+Node is the only prerequisite that isn't already required, and only for that one command. The
+version is pinned deliberately: the test asserts the installed build is the same one `index.html`
+loads from the CDN, so it refuses to run rather than verify a build no reader will get. An existing
+install elsewhere works too — `NODE_PATH=/path/to/node_modules node test_wasm.mjs`. What it cannot
+prove: it mounts the files through `FS.writeFile` rather than `fetch()`, so a Pages MIME quirk or a
+stale cached asset would still only show up in a real browser.
+
 The bips clone is treated as read-only and is left byte-identical: `sys.dont_write_bytecode` in the
 module and `PYTHONDONTWRITEBYTECODE=1` in the baseline subprocess, so importing and running
 `reference.py` leaves no `__pycache__` behind.
@@ -56,11 +81,14 @@ module and `PYTHONDONTWRITEBYTECODE=1` in the baseline subprocess, so importing 
 
 | File | Role |
 |---|---|
-| `index.html` | Plain-English explainer, plus a dependency-free JS reimplementation of case 12 that runs in the browser |
+| `index.html` | Plain-English explainer; §7 is a dependency-free JS reimplementation of case 12, §8 boots CPython/wasm on demand and runs `run_tests.py` itself |
 | `sp_coinbase.py` | The construction: `input_hash` variants (sound and broken), sender/scanner derivation, even-Y canonicalization, spend-key assembly |
 | `generate_vectors.py` | Deterministic key material and the case builders |
 | `coinbase_sp_test_vectors.json` | 11 cases, mirroring `send_and_receive_test_vectors.json`'s schema |
 | `run_tests.py` | Assert-based runner — no pytest, no fixtures; exits nonzero naming the failing case |
+| `vendor/` | Byte-identical copies of upstream `secp256k1lab`, `bitcoin_utils.py` and `ripemd160.py`, so the suite runs with no clone (which is the browser's situation). MIT + BSD-2-Clause; see [`vendor/README.md`](vendor/README.md). `reference.py` is deliberately **not** copied |
+| `test_wasm.mjs` | Headless proof of the browser path: same Pyodide build, same file list, real `run_tests.main()` |
+| `.nojekyll` | Keeps GitHub Pages from hiding `vendor/secp256k1lab/__init__.py` (Jekyll drops `_`-prefixed paths) |
 
 ## Cases
 
@@ -132,6 +160,16 @@ Namecoin-style AuxPoW header is ~44 B) leave room alongside 34 B in practice.
   formulas — and reproduces every byte. That rules out arithmetic and serialization mistakes. It
   does not substitute for review: same author, so a misreading of the design would be reproduced
   faithfully in both.
+- **The in-browser Python run is reproducibility, not a fourth independent check.** §8 of the page
+  runs *this repo's own* `sp_coinbase.py` and `run_tests.py`, unmodified, on CPython/wasm — so any
+  misreading of the design is reproduced there byte for byte, exactly as it is at a terminal. It
+  breaks no circularity; the JavaScript rewrite in §7 remains the only independently written
+  implementation. What it does buy is that a reader with no Python, no clone and no toolchain can
+  watch the recorded numbers be recomputed from the inputs instead of taking a committed JSON on
+  trust. It also cannot run the checks that matter most for conformance: `reference.py` is
+  deliberately not shipped to the browser, so the upstream baseline and cases 1 and 5 `SKIP` there
+  (as does the `vendor/` drift guard, which needs the clone). Nine green ticks in a browser is not
+  the suite passing.
 - **No security proof** for the sender-side split, and none is attempted. Case 9 shows the
   group-linear key list is broken; it does not prove the non-linear branch is unusable — that stays
   a generic-group-model argument.

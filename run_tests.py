@@ -4,7 +4,12 @@ baseline harness check. No pytest, no fixtures: plain asserts in plain
 functions. Prints which case failed and exits nonzero on any failure.
 
 Usage: python3 run_tests.py
-(Set BIPS_REPO if the bips clone is not a sibling of this directory.)
+(Set BIPS_REPO if the bips clone is not a sibling of this directory. Checks that
+cannot run here SKIP rather than fail, so a clone-less run still exercises 9 of
+the 11 cases — the same way the browser does; see test_wasm.mjs. At a terminal
+that partial run still exits 1, because nothing in it is checked against upstream
+BIP352; pass --allow-skips to accept it. In the browser it exits 0: there the
+absence of the clone is structural, not a mistake.)
 
 Every case recomputes all expected values from the "given" block before
 comparing, so the JSON alone tells a reviewer what the construction must
@@ -14,6 +19,7 @@ no demonstrated failure mode isn't tested."""
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import traceback
@@ -27,11 +33,26 @@ from sp_coinbase import (
     spend_key, tagged_hash,
 )
 
-VECTORS = Path(__file__).parent / "coinbase_sp_test_vectors.json"
+HERE = Path(__file__).resolve().parent
+VECTORS = HERE / "coinbase_sp_test_vectors.json"
+
+
+class Unavailable(Exception):
+    """This check cannot run HERE — no bips clone, no index.html, no git. Reported
+    as SKIP, not FAIL: the same run_tests.main() runs under Pyodide in the browser
+    (no clone, no git, no subprocess) and for a contributor without the clone.
+    Absence is detected, never declared by a flag, so there is no flag to lie with."""
+
+
+def need_clone(what: str) -> None:
+    """sp.reference is None when the bips clone is absent (see sp_coinbase.py)."""
+    if getattr(sp, "reference", None) is None:
+        raise Unavailable(f"needs the bips clone at {sp.BIPS_REPO} ({what}); set BIPS_REPO")
 
 
 # --- baseline: the 28 vendored BIP352 vectors, unmodified reference.py --------
 def run_baseline() -> None:
+    need_clone("runs upstream reference.py")
     env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}  # keep the bips clone pristine
     r = subprocess.run([sys.executable, "reference.py", "send_and_receive_test_vectors.json"],
                        capture_output=True, text=True, cwd=sp.BIP0352_DIR, env=env)
@@ -67,6 +88,7 @@ def check_receiving(entry: dict) -> None:
 
 # --- case 1 ----------------------------------------------------------------------
 def check_ordinary_split(case: dict) -> None:
+    need_clone("unmodified reference.get_input_hash")
     for se in case["sending"]:
         check_sending(se)
     for re_ in case["receiving"]:
@@ -148,6 +170,7 @@ def check_nonce_distinctness(case: dict) -> None:
 
 # --- case 5 ----------------------------------------------------------------------
 def check_vanilla_coinbase_reject(case: dict) -> None:
+    need_clone("unmodified reference.get_pubkey_from_input")
     from bitcoin_utils import CTxInWitness, VinInfo, from_hex
     vin_d = case["sending"][0]["given"]["vin"][0]
     vin = VinInfo(
@@ -339,12 +362,82 @@ CHECKS = {
 }
 
 
+# --- vendor/: the copies the BROWSER runs, so they must not drift -------------
+# The page boots Pyodide, fetches vendor/ and runs this same suite with no bips
+# clone in reach. Upstream nests the package one level deeper (src/), so the map
+# is not an identity: local path -> path under bip-0352/.
+VENDORED = {
+    "bitcoin_utils.py": "bitcoin_utils.py",
+    "ripemd160.py": "ripemd160.py",
+    **{f"secp256k1lab/{m}.py": f"secp256k1lab/src/secp256k1lab/{m}.py"
+       for m in ("__init__", "secp256k1", "util", "bip340")},
+}
+# Imported by nothing (bip340 pulls in .secp256k1 and .util only), so vendoring
+# them is optional — but if they are there they must still be pristine.
+VENDORED_OPTIONAL = {f"secp256k1lab/{m}.py": f"secp256k1lab/src/secp256k1lab/{m}.py"
+                     for m in ("keys", "ecdh")}
+
+
+def sha(p: Path) -> str:
+    return hashlib.sha256(p.read_bytes()).hexdigest()  # raw bytes, not text: catches EOL drift
+
+
+def check_vendored_files_pristine() -> None:
+    """vendor/ is upstream crypto that the published page executes. Silent drift
+    would mean the browser showing green ticks over code nobody reviewed — the
+    same false-green failure check_html_vector_in_sync exists to prevent."""
+    vendor, upstream = HERE / "vendor", sp.BIP0352_DIR
+    if not (upstream / "reference.py").exists():
+        raise Unavailable(f"bips clone not found at {sp.BIPS_REPO}; set BIPS_REPO")
+    assert not (vendor / "reference.py").exists(), (
+        "vendor/reference.py must NOT exist: the baseline and cases 1 and 5 are anchors "
+        "against UNMODIFIED upstream reference.py, so a local copy proves nothing")
+    files = {**VENDORED, **VENDORED_OPTIONAL}
+    # COPYING may sit at vendor/COPYING (beside ripemd160.py, whose own header says
+    # "see the accompanying file COPYING") or inside vendor/secp256k1lab/. Either
+    # placement is fine; being absent is not — this is MIT code.
+    for c in (vendor / "COPYING", vendor / "secp256k1lab" / "COPYING"):
+        if c.exists():
+            files[str(c.relative_to(vendor))] = "secp256k1lab/COPYING"
+    assert len(files) > len(VENDORED) + len(VENDORED_OPTIONAL), "vendor/ ships MIT code but no COPYING"
+    for rel, up in sorted(files.items()):
+        local, up_path = vendor / rel, upstream / up
+        if rel in VENDORED_OPTIONAL and not local.exists():
+            continue
+        assert local.exists(), f"vendored file missing: {local}"
+        assert sha(local) == sha(up_path), (
+            f"vendor/{rel} has DRIFTED from the bips clone.\n"
+            f"  local    {sha(local)}\n  upstream {sha(up_path)}  ({up_path})\n"
+            f"If upstream legitimately changed, re-vendor and bump the pinned commit in "
+            f"vendor/README.md:\n  cp {up_path} {local}")
+    # A per-file loop passes vacuously on an emptied directory only if nothing is
+    # required; a directory sweep passes on an emptied directory outright. Both
+    # directions, so neither hole is open.
+    strays = sorted(str(p.relative_to(vendor)) for p in vendor.rglob("*.py")
+                    if p.is_file() and "__pycache__" not in p.parts
+                    and str(p.relative_to(vendor)) not in files)
+    assert not strays, f"unlisted .py files under vendor/ (add them to VENDORED or delete): {strays}"
+    # Byte-identical files can still be an INCOMPLETE set: a new import in
+    # sp_coinbase.py would break in the browser and nowhere else. This is the only
+    # local thing that executes the vendored copies, so it must stay in main().
+    r = subprocess.run([sys.executable, "-c", "import sp_coinbase"], cwd=HERE,
+                       capture_output=True, text=True,
+                       env={**os.environ, "BIPS_REPO": "/nonexistent",
+                            "PYTHONDONTWRITEBYTECODE": "1"})
+    assert r.returncode == 0, (
+        "vendored-only import failed — this is exactly what the browser does, so the "
+        f"page is broken:\n{r.stderr}")
+
+
 # --- index.html carries its own copy of case 12, for the in-browser demo ------
 def check_html_vector_in_sync(cases: list) -> None:
     """The explainer runs case 12 in JavaScript against hardcoded values. If the
     vectors are regenerated with different key material, that copy goes stale and
     the page would show a green tick for numbers nobody checks. Pin it here."""
-    html = (Path(__file__).resolve().parent / "index.html").read_text()
+    page = HERE / "index.html"
+    if not page.exists():
+        raise Unavailable("index.html is not mounted here")
+    html = page.read_text()
     case = next(c for c in cases if c["case_type"] == "coinbase_scriptSig_carrier")
     se, re_ = case["sending"][0], case["receiving"][0]
     for name, want in [
@@ -364,38 +457,91 @@ def check_html_vector_in_sync(cases: list) -> None:
     assert f"offset: {re_['given']['A_send_source']['offset']}," in html, "index.html offset is stale"
 
 
+def check_page_pyodide_file_list() -> None:
+    """index.html fetches PY_FILES to boot the Pyodide run. An entry that is
+    absolute (404s under the /sp-coinbase-vectors/ project base), untracked (404s
+    for everyone but you) or missing breaks the browser and nothing else — the
+    node test mounts this same list, so it proves sufficiency, not correctness."""
+    page = HERE / "index.html"
+    if not page.exists():
+        raise Unavailable("index.html is not mounted here")
+    m = re.search(r"const PY_FILES = \[(.*?)\]", page.read_text(), re.S)
+    assert m, "index.html has no `const PY_FILES = [...]` list for the Pyodide run"
+    listed = re.findall(r"'([^']+)'", m.group(1))
+    absolute = [p for p in listed if p.startswith("/")]
+    assert not absolute, f"PY_FILES paths must be relative (project page base path): {absolute}"
+    needed = {"sp_coinbase.py", "run_tests.py", VECTORS.name,
+              *(f"vendor/{r}" for r in VENDORED)}
+    missing = sorted(needed - set(listed))
+    assert not missing, (f"index.html's Pyodide file list is stale (would 404 or ImportError at "
+                         f"runtime); missing from the page: {missing}")
+    try:
+        tracked = subprocess.run(["git", "ls-files", "-z"], cwd=HERE, capture_output=True,
+                                 text=True, check=True).stdout.split("\0")
+    except OSError:
+        # No git binary, or a runtime with no subprocess at all: Pyodide raises
+        # OSError(errno 138, "emscripten does not support processes"), not
+        # FileNotFoundError. Either way this check cannot run here.
+        raise Unavailable("git is not available here")
+    untracked = sorted(set(listed) - set(tracked))
+    assert not untracked, ("PY_FILES entries git does not track, so the page will 404 for "
+                           f"everyone but you — git add them: {untracked}")
+    # Not fetched, but the fetches depend on it: GitHub Pages runs Jekyll, which
+    # excludes paths beginning with an underscore, so without .nojekyll the page
+    # 404s on vendor/secp256k1lab/__init__.py alone.
+    assert ".nojekyll" in tracked, (
+        ".nojekyll is not tracked — Jekyll would hide vendor/secp256k1lab/__init__.py "
+        "from the published page: git add .nojekyll")
+
+
+def run_check(name: str, fn, *args, detail: str = "") -> str:
+    try:
+        fn(*args)
+        print(f"PASS: {name}")
+        return "PASS"
+    except Unavailable as e:
+        print(f"SKIP: {name} — {e}")
+        return "SKIP"
+    except Exception:
+        print(f"FAIL: {name}{detail}")
+        traceback.print_exc()
+        return "FAIL"
+
+
 def main() -> int:
-    failures = 0
+    results = []
+    baseline = "baseline — 28 vendored BIP352 vectors, unmodified reference.py"
     if "--skip-baseline" in sys.argv:
-        print("SKIP: baseline (--skip-baseline)")
+        print(f"SKIP: {baseline} — --skip-baseline")
+        results.append("ASKED")  # a requested skip, not a check that could not run
     else:
-        try:
-            run_baseline()
-            print("PASS: baseline — 28 vendored BIP352 vectors, unmodified reference.py")
-        except Exception:
-            failures += 1
-            print("FAIL: baseline — 28 vendored BIP352 vectors, unmodified reference.py")
-            traceback.print_exc()
+        results.append(run_check(baseline, run_baseline))
     cases = json.loads(VECTORS.read_text())
     for case in cases:
-        try:
-            CHECKS[case["case_type"]](case)
-            print(f"PASS: {case['case_type']}")
-        except Exception:
-            failures += 1
-            print(f"FAIL: {case['case_type']} — {case['comment'][:100]}")
-            traceback.print_exc()
-    try:
-        check_html_vector_in_sync(cases)
-        print("PASS: index.html demo values in sync with case 12")
-    except Exception:
-        failures += 1
-        print("FAIL: index.html demo values in sync with case 12")
-        traceback.print_exc()
+        results.append(run_check(case["case_type"], CHECKS[case["case_type"]], case,
+                                 detail=f" — {case['comment'][:100]}"))
+    results.append(run_check("vendor/ matches the bips clone and imports standalone",
+                             check_vendored_files_pristine))
+    results.append(run_check("index.html demo values in sync with case 12",
+                             check_html_vector_in_sync, cases))
+    results.append(run_check("index.html Pyodide file list", check_page_pyodide_file_list))
+    failures, unavailable = results.count("FAIL"), results.count("SKIP")
+    skipped = unavailable + results.count("ASKED")
     if failures:
         print(f"\n{failures} check(s) FAILED")
         return 1
-    print("\nAll tests passed")
+    # A run with no bips clone (or a typo'd BIPS_REPO) checks nothing against
+    # upstream BIP352 — the baseline, cases 1 and 5, and the vendor/ drift guard
+    # all go quiet. That must not exit 0 at a terminal just because it does no
+    # worse than the browser, where the same absence is structural.
+    if unavailable and sys.platform != "emscripten" and "--allow-skips" not in sys.argv:
+        print(f"\n{unavailable} check(s) could not run here (see the SKIP lines), so nothing was "
+              f"checked against upstream BIP352. Point BIPS_REPO at a bitcoin/bips clone, or pass "
+              f"--allow-skips to accept a partial run.")
+        return 1
+    # Never a bare "All tests passed" after a skip: an --allow-skips run would
+    # otherwise be indistinguishable from a full one.
+    print("\nAll tests passed" + (f" ({skipped} skipped)" if skipped else ""))
     return 0
 
 

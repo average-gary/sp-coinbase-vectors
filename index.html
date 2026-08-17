@@ -32,6 +32,9 @@
   }
   .math .c { color: #8c8578; }
   .math b { font-weight: 700; }
+  /* The Python runner's own messages (and any traceback) are wider than this
+     column and are not ours to reflow, so wrap them here instead of scrolling. */
+  #pyout { white-space: pre-wrap; overflow-wrap: break-word; }
   .key {
     background: #fff; border: 1px solid #e5e0d6; border-left: 4px solid #1c1c1c;
     border-radius: 5px; padding: .9rem 1.15rem; margin: 1.4rem 0; font-size: .97rem;
@@ -47,6 +50,11 @@
   footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid #e5e0d6; color: #777; font-size: .85rem; }
   footer code { font-size: .9em; }
   .ok { color: #1f6b3a; } .bad { color: #a3271f; font-weight: 700; }
+  button {
+    font: inherit; font-size: .95rem; color: inherit; background: #fff;
+    border: 1px solid #cfc8bb; border-radius: 5px; padding: .5rem .9rem; cursor: pointer;
+  }
+  button:disabled { color: #9a8f7d; cursor: default; }
 </style>
 </head>
 <body>
@@ -407,7 +415,63 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
   </p>
 </div>
 
-<h2><span class="n">08</span> What this does and doesn't buy</h2>
+<h2><span class="n">08</span> Run the real suite</h2>
+
+<p>
+  The code in section 7 is a rewrite. This is the original: the same Python module that generated
+  the vectors, checked by the same <code>run_tests.py</code> a reviewer would run at a terminal —
+  except running here, in a real CPython compiled to WebAssembly. It fetches the files served
+  next to this page and prints the runner's own lines, with <code>PASS</code>,
+  <code>FAIL</code> and <code>SKIP</code> shown as ticks. No wording is rewritten.
+</p>
+
+<p>
+  The catch is that a Python interpreter has to be downloaded first: about 6 MB from a CDN.
+  Nothing is fetched until you press the button, and if you would rather not,
+  <code>python3 run_tests.py</code> runs it at a terminal instead — all eleven cases if you also
+  have a clone of <code>bitcoin/bips</code>, and the same nine as here if you don't.
+</p>
+
+<p><button id="pyrun" disabled>Run the real Python suite (downloads about 6 MB)</button></p>
+
+<div class="math" id="pyout" hidden aria-live="polite"></div>
+<p id="pystatus" class="sub" style="margin:-.6rem 0 1.4rem" role="status" aria-live="polite"></p>
+
+<p>
+  Nine of the eleven cases run in the browser. The rest print <code>SKIP</code>, and it is worth
+  knowing which: they are the checks that execute <strong>unmodified upstream BIP 352
+  code</strong> — the 28 official BIP&nbsp;352 vectors, plus the two cases that call upstream's own
+  <code>reference.py</code> to show what plain silent payments do when handed a coinbase. That
+  file is deliberately not shipped with this page: a copy of it could not prove agreement with the
+  original, which is the only thing it is there to prove. The remaining skips are housekeeping:
+  one compares this repo's copies of the curve library against that same clone, and two check
+  <code>index.html</code> itself, which is not one of the files handed to the interpreter.
+</p>
+
+<div class="key">
+  <p>
+    <strong>What a green run does prove.</strong> That the code in this repository recomputes every
+    recorded number from the inputs alone — shared secrets, tweaks, payout keys, the
+    <code>scriptSig</code> layout — that each miner's key really does spend its own output, and
+    that the negative controls fail in exactly the way they claim to. Case 12 is the one section 7
+    just did by hand, so you can read the two straight off each other.
+  </p>
+  <p>
+    <strong>What it cannot prove</strong> is agreement with BIP&nbsp;352 itself. That is precisely the
+    check that needs upstream's code, and it is the one that gets skipped here. For it, clone the
+    repo next to a copy of <code>bitcoin/bips</code> and run the suite at a terminal. Nine green
+    ticks in a browser are not the whole suite passing, and shouldn't be read as it.
+  </p>
+</div>
+
+<p>
+  One warning if this tempts you to reuse the Python. The curve arithmetic comes from
+  <code>secp256k1lab</code>, a teaching implementation whose own README says it is insecure and
+  trivially vulnerable to side-channel attacks. It is the right tool for test vectors and the
+  wrong one for anything holding money.
+</p>
+
+<h2><span class="n">09</span> What this does and doesn't buy</h2>
 
 <p>
   It hides the payouts from <strong>everyone reading the blockchain</strong>. Each miner sees
@@ -588,6 +652,120 @@ runVector().then((rows) => {
     `<span class="bad">Could not run: ${esc(String(e))}</span>\n` +
     `(SHA-256 needs a secure context — open over https:// or localhost, not file://)`;
 });
+
+/* ---- section 08: the real Python suite, loaded only on click -------------- */
+
+// Pinned build. jsdelivr's per-version paths are immutable, so the integrity hash
+// is stable — but it covers pyodide.js (19 KB) only. The ~6 MB of wasm and stdlib
+// that loader then fetches itself carries no integrity check.
+const PYODIDE_URL = 'https://cdn.jsdelivr.net/pyodide/v314.0.4/full/pyodide.js';
+const PYODIDE_SRI = 'sha384-Yu03TsjS+qEiVZINZd3uEuLuQINOxoKmO7cu0m1MfFMWXfwCj8Y+Db2Ypkh0NkRe';
+
+// Relative paths only: this page is served from a project subdirectory, so a
+// leading slash would 404. run_tests.py pins this list against the repo, and
+// test_wasm.mjs mounts exactly these — so a stale entry fails offline, not here.
+const PY_FILES = [
+  'sp_coinbase.py',
+  'run_tests.py',
+  'coinbase_sp_test_vectors.json',
+  'vendor/bitcoin_utils.py',
+  'vendor/ripemd160.py',
+  'vendor/secp256k1lab/__init__.py',
+  'vendor/secp256k1lab/secp256k1.py',
+  'vendor/secp256k1lab/util.py',
+  'vendor/secp256k1lab/bip340.py',
+];
+
+const pyStatus = (s, cls) => {
+  document.getElementById('pystatus').innerHTML = cls ? `<span class="${cls}">${esc(s)}</span>` : esc(s);
+};
+
+function pyEmit(s, cls) {
+  const el = document.getElementById('pyout');
+  el.hidden = false;
+  el.innerHTML += (cls ? `<span class="${cls}">${esc(s)}</span>` : esc(s)) + '\n';
+}
+
+// The runner's own stdout, recoloured by prefix. Nothing is rewritten: the SKIP
+// reasons, FAIL comments and tracebacks are wider than this column, and #pyout
+// wraps them in CSS rather than reflowing them here.
+function pyPrint(s) {
+  const t = s.replace(/\s+$/, '');
+  if (t.startsWith('PASS: '))      pyEmit('✓ ' + t.slice(6), 'ok');
+  else if (t.startsWith('FAIL: ')) pyEmit('✗ ' + t.slice(6), 'bad');
+  else if (t.startsWith('SKIP: ')) pyEmit('- ' + t.slice(6), 'c');
+  else pyEmit(t);
+}
+
+function loadPyodideScript() {
+  if (window.loadPyodide) return Promise.resolve();   // a retry must not inject it twice
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = PYODIDE_URL;
+    s.integrity = PYODIDE_SRI;
+    s.crossOrigin = 'anonymous';
+    s.onload = resolve;
+    s.onerror = () => reject(new Error(
+      'Could not load Pyodide from jsdelivr — offline, blocked, or the pinned\n' +
+      'build no longer matches its recorded checksum.'));
+    document.head.appendChild(s);
+  });
+}
+
+async function pyFetch(path) {
+  // No fallbacks: a 404 here means the browser would run different code from the
+  // local suite, which is the one thing this section must not do quietly.
+  // (.nojekyll keeps Pages from hiding secp256k1lab/__init__.py — run_tests.py
+  // asserts it is committed.)
+  const r = await fetch(path);
+  if (!r.ok) throw new Error(`Could not fetch ${path} — HTTP ${r.status}.`);
+  return r.text();
+}
+
+async function runRealSuite(btn) {
+  btn.disabled = true;
+  document.getElementById('pyout').innerHTML = '';   // a retry replaces, never appends
+  const t0 = Date.now();
+  let stage = 'downloading Python (about 6 MB)';
+  const tick = setInterval(
+    () => pyStatus(`${stage}… ${Math.round((Date.now() - t0) / 1000)}s`), 250);
+  try {
+    await loadPyodideScript();
+    stage = 'starting the interpreter';
+    const py = await loadPyodide();
+    stage = 'fetching the files served with this page';
+    const sources = await Promise.all(PY_FILES.map(pyFetch));
+    PY_FILES.forEach((rel, i) => {
+      const slash = rel.lastIndexOf('/');
+      py.FS.mkdirTree(slash < 0 ? '/app' : '/app/' + rel.slice(0, slash));
+      py.FS.writeFile('/app/' + rel, sources[i]);
+    });
+    py.setStdout({ batched: pyPrint });
+    py.setStderr({ batched: (s) => pyEmit(s.replace(/\s+$/, ''), 'bad') });
+    clearInterval(tick);
+    pyStatus('running the suite (this tab freezes for a second)…');
+    await new Promise((r) => setTimeout(r, 0));      // paint that before we block
+    const failures = py.runPython(
+      "import sys\n" +
+      "sys.path.insert(0, '/app')\n" +
+      "sys.argv = ['run_tests.py']\n" +
+      "import run_tests\n" +
+      "run_tests.main()\n");
+    pyStatus(failures === 0
+      ? `Done in ${Math.round((Date.now() - t0) / 1000)}s. Every check that can run in a browser passed; the skipped ones need the upstream clone, or files this page does not hand to the interpreter.`
+      : 'The suite reported failures above. That is a real disagreement between this code and its recorded vectors, not a browser problem.',
+      failures === 0 ? 'ok' : 'bad');
+  } catch (e) {
+    clearInterval(tick);
+    pyEmit(String((e && e.message) || e), 'bad');
+    pyStatus('Nothing was verified. Offline: python3 run_tests.py', 'bad');
+    btn.disabled = false;
+  }
+}
+
+const pyBtn = document.getElementById('pyrun');
+pyBtn.addEventListener('click', () => runRealSuite(pyBtn));
+pyBtn.disabled = false;    // ships disabled, so no-JS readers get an inert button
 </script>
 </body>
 </html>

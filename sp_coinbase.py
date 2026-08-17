@@ -51,11 +51,23 @@ from typing import Any, Dict, List, Optional, Tuple
 # Never write __pycache__ into the bips clone — it must stay pristine.
 sys.dont_write_bytecode = True
 
-# --- import the vendored BIP352 reference implementation and secp256k1lab ----
+# --- import bitcoin_utils and secp256k1lab: bips clone first, vendor/ fallback -
 BIPS_REPO = Path(os.environ.get("BIPS_REPO", Path(__file__).resolve().parent.parent / "bips"))
 BIP0352_DIR = BIPS_REPO / "bip-0352"
-sys.path.insert(0, str(BIP0352_DIR))
-import reference  # noqa: F401  # importing it puts secp256k1lab/src on sys.path itself
+VENDOR_DIR = Path(__file__).resolve().parent / "vendor"
+# Nonexistent sys.path entries are silently skipped, so one order serves both
+# worlds: locally the clone wins (we execute upstream's own modules), and in the
+# browser (Pyodide, no clone) the vendored byte-identical copies win. The
+# secp256k1lab/src entry must be explicit — it used to arrive only as a side
+# effect of `import reference`, which is now conditional.
+sys.path[:0] = [str(BIP0352_DIR), str(BIP0352_DIR / "secp256k1lab" / "src"), str(VENDOR_DIR)]
+# reference.py is deliberately NOT vendored: run_tests uses sp.reference to check
+# this variant against unmodified upstream, which a copy could not prove. Absent
+# clone -> None; present but broken -> the ImportError is not swallowed.
+if (BIP0352_DIR / "reference.py").exists():
+    import reference  # noqa: F401  # side effect only here; run_tests uses sp.reference
+else:
+    reference = None  # type: ignore[assignment]
 from bitcoin_utils import COutPoint, deser_txid, ser_uint32  # noqa: E402
 from secp256k1lab.bip340 import schnorr_sign, schnorr_verify  # noqa: E402
 from secp256k1lab.secp256k1 import G, GE, Scalar  # noqa: E402
