@@ -232,9 +232,15 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 <h2><span class="n">06</span> Where <code>A_send</code> comes from</h2>
 
 <p>
-  A fresh <code>a_send</code> per block means the matching <code>A_send</code> has to reach the
-  miners somehow — 33 bytes per block. There are a few places it can go, and they're not equally
-  good.
+  Whatever <code>A_send</code> the pool is using has to reach the miners somehow — 32 bytes. There
+  are a few places it can go, and they're not equally good.
+</p>
+
+<p>
+  Note that <code>A_send</code> does <em>not</em> have to change every block for the payouts to stay
+  unlinkable — the block height is already mixed into the hash, so every block produces different
+  addresses even from the same <code>A_send</code>. Replacing it is about limiting how much history a
+  single leaked key would expose. That makes the replacement rate a dial, not a requirement.
 </p>
 
 <p>
@@ -247,18 +253,19 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 
 <p>
   <strong>In the coinbase's spare bytes.</strong> Every block already has a small scratch area at
-  the start of the coinbase, and a second one attached to the segwit commitment. Either can hold
-  33 bytes. One constraint: while searching for a block, a miner rapidly rewrites part of that
-  scratch area (the <em>extranonce</em>) millions of times a second. <code>A_send</code> has to
-  sit outside those bytes — if it moved, every attempt would change all the payout addresses.
+  the start of the coinbase, and a second one attached to the segwit commitment. Either has room.
+  One constraint: while searching for a block, a miner rapidly rewrites part of that scratch area
+  (the <em>extranonce</em>) millions of times a second. <code>A_send</code> has to sit outside those
+  bytes — if it moved, every attempt would change all the payout addresses.
 </p>
 
 <p>
   That first scratch area holds 100 bytes, and the room is there. Checked against the Stratum V2
-  reference pool: the block height takes about 4 bytes, the extranonce 20, protocol overhead 8 — which
-  leaves <strong>64 bytes</strong> for the tag. Better, all 100 bytes are <em>already reserved</em> by
-  mining software whether or not anything uses them, and unused ones are not handed back to
-  fee-paying transactions. So the space is pre-paid: putting <code>A_send</code> there costs nothing.
+  reference pool: the block height takes about 4 bytes, the extranonce 20, protocol framing 8 — which
+  leaves <strong>64 bytes</strong> free, twice what the key needs. Better, all 100 bytes are
+  <em>already reserved</em> by mining software whether or not anything uses them, and unused ones are
+  not handed back to fee-paying transactions. So the space is pre-paid: putting <code>A_send</code>
+  there costs nothing.
 </p>
 
 <p>
@@ -271,23 +278,20 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 </p>
 
 <p>
-  An older-style <em>multisig</em> output looks like the escape, because it shows both keys while
-  letting either one sign alone: put <code>A_send</code> and the pool's real key side by side, and
-  the pool spends with its own. The mechanics work. <strong>But it fails for the same reason, one
-  step removed.</strong> "Either key can sign alone" includes <code>A_send</code>. So anyone who
-  gets hold of <code>a_send</code> — the key we specifically wanted to be cheap to lose — can take
-  the pool's fee. Requiring <em>both</em> keys to sign fixes the theft and breaks the other half:
-  <code>a_send</code> would then be needed to spend, so it could never be thrown away. There's no
-  version of this that works. <strong>The rule that falls out: <code>A_send</code> must never
-  appear in a script that controls money.</strong> Put it in data, not in a spending condition.
+  Trying to be clever with the output's spending conditions doesn't rescue it either, and the reason
+  generalises past taproot. Anything that lets a scanner read <code>A_send</code> off an output that
+  holds money either grants <code>a_send</code> the power to move that money, or requires it to sign
+  and so forbids ever deleting it. One or the other, every time. <strong>The rule that falls out:
+  <code>A_send</code> must never appear in a script that controls money.</strong> Put it in data, not
+  in a spending condition.
 </p>
 
 <div class="key">
   <p>
     <strong>The neat part: it can replace the pool's name tag.</strong> Pools already write a
     short bit of text into that scratch area — <code>"/Foundry USA/"</code> and so on — to sign
-    their blocks. Put <code>A_send</code> there <em>instead</em>, and the 33 bytes cost nothing
-    extra, because they're taking a slot that was already spoken for.
+    their blocks. Put <code>A_send</code> there <em>instead</em>, and it costs nothing extra, because
+    it's taking a slot that was already spoken for.
   </p>
   <p>
     The pool doesn't even lose its public identity. If its list of <code>A_send</code> values is
@@ -303,8 +307,8 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
     isn't something an implementer has to remember, it's how the message is built. And the tag is a
     <em>text</em> field, so <code>A_send</code> has to be written as text rather than raw bytes.
     That matters more than it sounds: plain hex needs 64 characters and the budget is exactly 64, so it
-    fits with nothing to spare. Any compact text encoding — the same kind bitcoin addresses use —
-    needs about 52 and leaves room to breathe.
+    fits with nothing left for anything else. A compact text encoding — the same kind bitcoin addresses
+    use — needs about 52 and leaves room to breathe.
   </p>
 </div>
 
@@ -338,8 +342,9 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <p>
   It does <strong>not</strong> hide anything from the pool. The pool computed the payouts, so it
   knows exactly who is owed what — that's unavoidable in a scheme where one party decides the
-  amounts. What changes is that the pool no longer has to <em>publish</em> that knowledge, and
-  can choose not to keep the key that would let it prove any of it later.
+  amounts. What changes is that the pool no longer has to <em>publish</em> that knowledge, and can
+  choose not to keep the key that would let anyone reconstruct it later — with the caveat from
+  section 5 that nobody outside the pool can check whether it really did.
 </p>
 
 <footer>
