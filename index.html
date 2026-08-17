@@ -240,15 +240,32 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 </p>
 
 <p>
+  That first scratch area holds 100 bytes, and the room is there: the block height takes about 4,
+  <code>A_send</code> takes 34, and the ~62 left over is more extranonce space than the Stratum V2
+  protocol can even address. Better, the 100 bytes are <em>already reserved</em> by mining software
+  whether or not anything uses them — so spending 34 of them on <code>A_send</code> displaces no
+  fee-paying transactions. The space is pre-paid.
+</p>
+
+<p>
   <strong>Not the pool's own fee output</strong> — and the reason is worth understanding. A
   taproot output already <em>is</em> a public key sitting in the block, so it looks like a free
   carrier. But for taproot, knowing the secret behind that visible key is exactly what lets you
   spend the output. So if the fee output were <code>A_send</code>, then <code>a_send</code> would
   be the key that spends the pool's fee — a key holding money, which can never be thrown away.
   We'd be back where we started. <em>Visibility and spendability are the same property there.</em>
-  An older-style multisig output can do the job, because it shows both keys while letting either
-  one sign alone: put <code>A_send</code> and the pool's real key side by side, and the pool
-  spends with its own. That works, and costs 37 bytes more than a plain taproot output.
+</p>
+
+<p>
+  An older-style <em>multisig</em> output looks like the escape, because it shows both keys while
+  letting either one sign alone: put <code>A_send</code> and the pool's real key side by side, and
+  the pool spends with its own. The mechanics work. <strong>But it fails for the same reason, one
+  step removed.</strong> "Either key can sign alone" includes <code>A_send</code>. So anyone who
+  gets hold of <code>a_send</code> — the key we specifically wanted to be cheap to lose — can take
+  the pool's fee. Requiring <em>both</em> keys to sign fixes the theft and breaks the other half:
+  <code>a_send</code> would then be needed to spend, so it could never be thrown away. There's no
+  version of this that works. <strong>The rule that falls out: <code>A_send</code> must never
+  appear in a script that controls money.</strong> Put it in data, not in a spending condition.
 </p>
 
 <div class="key">

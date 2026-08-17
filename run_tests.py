@@ -263,8 +263,18 @@ def check_multisig_fee_output(case: dict) -> None:
     se = case["sending"][0]
     script = bytes.fromhex(se["expected"]["fee_output_scriptPubKey"])
     # Script shape: OP_1 <33> <33> OP_2 OP_CHECKMULTISIG, 71 bytes (+37 B vs a
-    # P2TR fee output = 148 WU). m = 1 means ONE signer authorizes, so a_send is
-    # never needed to spend — erasure at block-found cannot brick the output.
+    # P2TR fee output = 148 WU).
+    #
+    # REJECTED CARRIER — the assertions below pin the mechanics, which do work; the
+    # verdict is recorded in the case comment. m = 1 means any ONE listed key
+    # authorizes a spend, so a_send is not merely unnecessary for spending, it is
+    # SUFFICIENT: whoever obtains the erasable privacy key can take the pool's fee.
+    # That voids the property the sender-side split exists for (losing a_send costs
+    # privacy, never funds). m = 2 fails oppositely — a_send must sign, so it cannot
+    # be erased. Nothing here can assert that defect: it is a fact about script
+    # semantics, not about the derivation. Making it executable would mean an ECDSA
+    # spend of this output under a_send alone; not built, because the carrier is
+    # dropped in favour of the scriptSig (case 12) and the out-of-band list.
     assert len(script) == 71 and script[0] == 0x51 and script[69:71] == b"\x52\xae"
     keys = sp.parse_p2ms_1_of_2(script)
     # A_send survives the scriptPubKey round-trip byte-exactly and is the same

@@ -77,12 +77,48 @@ split, and killed by binding `input_hash` to `A_send`; an odd-Y `A_send` with th
 omitted; and the group-linear "compressed list" `A_H = A_0 + H(A_0‖H)·G`, where holding `a_0`
 recovers every epoch key and unmasks every past payout.
 
-**Carriers (10–11)** — where `A_send` actually travels. A taproot fee output **cannot** carry it
-(the visible key's discrete log *is* the keypath spend secret, so visibility and spendability are
-one property); a bare 1-of-2 multisig can, at +37 B. And the coinbase scriptSig can carry it *as
-the pool tag*, which dissolves the byte-budget objection entirely — the runner asserts the 2–100 B
-consensus budget, the BIP 34 height round-trip, and that the `A_send` region is disjoint from the
-miner-rolled extranonce region.
+**Carriers (11–12)** — where `A_send` actually travels.
+
+Case 11 is a **rejected** carrier, kept because the mechanics are worth pinning. A taproot fee
+output cannot carry `A_send` (the visible key's discrete log *is* the keypath spend secret, so
+visibility and spendability are one property). A bare 1-of-2 multisig carries it mechanically — the
+scanner parses key 0 and the construction runs unchanged — but `m = 1` means `a_send` is not merely
+unnecessary for spending, it is *sufficient*: whoever obtains the erasable privacy key can take the
+pool's fee. `m = 2` fails oppositely, since `a_send` must then sign and so can never be erased. The
+rule that survives: **`A_send` must never appear in a script that controls money.**
+
+Case 12 is the leading on-chain carrier: the coinbase scriptSig, carrying `A_send` *as the pool
+tag*, which dissolves the byte-budget objection rather than paying it. The runner asserts the
+2–100 B consensus budget, the BIP 34 height round-trip, and that the `A_send` region is disjoint
+from the miner-rolled extranonce region. Under Stratum V2 that disjointness is structural, not
+conventional — see below.
+
+### Stratum V2 fit (case 12)
+
+Checked against the [SV2 spec](https://stratumprotocol.org) 2026-08-16. There is **no pool-tag
+field** in SV2; the tag is bytes the pool places in the scriptSig region it controls.
+
+- **Disjointness is enforced by the message format.** For extended channels the coinbase is
+  `coinbase_tx_prefix ‖ extranonce_prefix ‖ extranonce ‖ coinbase_tx_suffix` (`05-Mining-Protocol`
+  §5.4.1.6). The extranonce is *defined* as the gap between the two pool-set halves, so `A_send`
+  placed in `coinbase_tx_suffix` cannot be rolled. Case 12's asserted invariant is structural here.
+- **The space is pre-paid.** A Template Provider MUST reserve the worst-case 400 WU / 100 B for
+  `scriptSig` unconditionally (`07-Template-Distribution-Protocol`). Using 34 more bytes displaces
+  no fee-paying transactions; the opportunity cost was already taken at template-build time.
+- **Budget.** 100 B cap − ~4 B BIP 34 height (`NewTemplate.coinbase_prefix`, ≤8 B + length byte)
+  − 34 B `push33(A_send)` = **~62 B** left for the full Extended Extranonce, against a protocol
+  ceiling of 64 B (`extranonce_prefix` B0_32 + `extranonce` B0_32). Practical allocations are
+  8–16 B, so the headroom is 4–8×.
+- **Two constraints.** `coinbase_tx_prefix` carries the `scriptSig length`, and all channels in a
+  group channel MUST share one full-extranonce size (§5.1.2.1) — so the 34 B shrinks extranonce
+  space uniformly for the group. `A_send`'s *length* is constant, so no per-block renegotiation.
+- **Out of scope: Job Declaration mode.** Under JD the JDC builds `coinbase_tx_prefix`/`suffix`
+  (`06-Job-Declaration-Protocol`), so the pool cannot place `A_send` in the scriptSig — and JD does
+  not pay miners per-output anyway (the pool takes one output). This scheme assumes a
+  pool-controlled template.
+
+Not verified: empirical mainnet scriptSig occupancy, and whether merge-mining commitments (a
+Namecoin-style AuxPoW header is ~44 B) leave room alongside 34 B in practice.
 
 ## Known limits
 

@@ -392,20 +392,27 @@ def case11() -> dict:
         "key_material": key_material(*MINERS[0]),
     })
     return {
-        "comment": "Case 11 — A_send conveyed by the pool's own fee output, no separate carrier. "
-                   "A taproot output CANNOT do this (it exposes one group element and that "
-                   "element's dlog is the keypath spend secret — visibility and spendability are "
-                   "one property), but a BARE 1-of-2 MULTISIG reveals its keys while letting "
-                   "either holder sign alone: txOut[0] = OP_1 <A_send> <A_pool> OP_2 "
-                   "OP_CHECKMULTISIG. The scanner parses key 0 and runs the unchanged "
-                   "construction; the pool spends with a_pool only, so a_send is erasable at "
-                   "block-found (full split, full forward secrecy). Cost vs P2TR fee output: "
-                   "+37 B ≈ 148 WU — 16 WU dearer than the witness-commitment optional-data "
-                   "field (132 WU), which is why the table ranks the commitment slot first among "
-                   "on-chain carriers; both lose to the stratum list (0 on-chain bytes). The "
-                   "runner asserts the script's shape (m = 1: a_send is never needed to spend), "
-                   "that A_send survives the scriptPubKey round-trip byte-exactly, and that the "
-                   "miner's scan + spend path is untouched.",
+        "comment": "Case 11 — REJECTED CARRIER: A_send conveyed by the pool's own fee output as a "
+                   "bare 1-of-2 multisig, txOut[0] = OP_1 <A_send> <A_pool> OP_2 OP_CHECKMULTISIG. "
+                   "The mechanics work and this case pins them: the scanner parses key 0 and runs "
+                   "the unchanged construction, A_send survives the scriptPubKey round-trip "
+                   "byte-exactly, and the miner's scan + spend path is untouched. The VERDICT is "
+                   "nevertheless reject, and the reason is the one this case was originally written "
+                   "to dodge. m = 1 means a_send is not merely unnecessary for spending — it is "
+                   "SUFFICIENT. Anyone who obtains the erasable privacy key can sign for the pool's "
+                   "fee output and take it. That is the same defect that rules out a taproot "
+                   "carrier (a P2TR output exposes one group element whose dlog is the keypath "
+                   "spend secret, so visibility and spendability are one property); bare multisig "
+                   "separates the two mechanically but not economically, because a_send still "
+                   "authorizes money. The whole point of the sender-side split is that losing "
+                   "a_send costs privacy and never funds, and this carrier voids it. Raising to "
+                   "m = 2 fails the other way: a_send must then sign, so it cannot be erased until "
+                   "the fee is spent, which destroys the forward secrecy the split exists for. No "
+                   "value of m works. Cost was +37 B ≈ 148 WU vs a P2TR fee output; that number is "
+                   "now moot. Surviving carriers: the out-of-band list (0 on-chain bytes), the "
+                   "witness-commitment optional-data field at bip-0141.mediawiki:74 (132 WU), and "
+                   "the coinbase scriptSig as the pool tag (case 12) — all three keep a_send out of "
+                   "every scriptPubKey, so it authorizes nothing.",
         "case_type": "multisig_fee_output",
         "sending": [se],
         "receiving": [re_],
