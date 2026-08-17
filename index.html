@@ -196,9 +196,23 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 </p>
 
 <p>
-  <code>a_send</code> spends nothing. Nobody's coins depend on it. So the pool can throw it
-  away once the block is paid — and once it's gone, nobody can ever recompute who was paid in
-  that block, including the pool itself, including under a court order.
+  <code>a_send</code> spends nothing. Nobody's coins depend on it. So the pool <em>can</em> throw it
+  away once the block is paid.
+</p>
+
+<p>
+  <strong>To be clear about what that is and isn't:</strong> deletion can't be proven. Nobody outside
+  the pool can check whether a key was really destroyed or just quietly filed away, and no protocol
+  can make that verifiable. So this is not an auditable guarantee, and shouldn't be sold as one.
+</p>
+
+<p>
+  What changes is that throwing the key away becomes <em>possible at all</em>. Today the sender's key
+  spends money, so it must be kept — there is no version of the pool that doesn't hold it. With a
+  dedicated <code>a_send</code>, a pool that wants to keep nothing is able to, and a key that no
+  longer exists can't leak, can't be stolen, and can't be handed over later. Unverifiable but
+  available beats unavailable, and it's the pool's own risk it's reducing, so the incentive points
+  the right way without anyone having to take it on trust.
 </p>
 
 <div class="key">
