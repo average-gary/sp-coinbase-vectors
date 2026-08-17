@@ -261,11 +261,34 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 
 <p>
   That first scratch area holds 100 bytes, and the room is there. Checked against the Stratum V2
-  reference pool: the block height takes about 4 bytes, the extranonce 20, protocol framing 8 — which
-  leaves <strong>64 bytes</strong> free, twice what the key needs. Better, all 100 bytes are
-  <em>already reserved</em> by mining software whether or not anything uses them, and unused ones are
-  not handed back to fee-paying transactions. So the space is pre-paid: putting <code>A_send</code>
-  there costs nothing.
+  reference pool:
+</p>
+
+<div class="math">100 bytes of scratch space <span class="c">— one █ = 2 bytes</span>
+
+  block height    8  ████        <span class="c">worst case</span>
+  extranonce     20  ██████████  <span class="c">miner-rolled</span>
+  framing         8  ████        <span class="c">delimiters + opcodes</span>
+  ─────────────────
+  <b>free           64</b>  ████████████████████████████████
+
+<b>A_send as text — does it fit in those 64?</b>
+
+  hex            64  ████████████████████████████████  <span class="c">full</span>
+  bech32         52  ██████████████████████████        <span class="c">+12</span>
+  base64url      43  █████████████████████             <span class="c">+21</span></div>
+
+<p>
+  Two details in there matter. The height slot is 8 because that's the largest the protocol permits and
+  the software reserves it whether or not it's used — today's block heights only need 4, but you can't
+  spend the difference. And the key has to go in as the <em>x coordinate only</em>, 32 bytes: the
+  33-byte form with its redundant prefix byte needs 66 hex characters and overruns.
+</p>
+
+<p>
+  Better, all 100 bytes are <em>already reserved</em> by mining software whether or not anything uses
+  them, and unused ones are not handed back to fee-paying transactions. So the space is pre-paid:
+  putting <code>A_send</code> there costs nothing.
 </p>
 
 <p>
@@ -305,10 +328,9 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
     Two practical notes from reading the pool software. The tag lands in the part of the coinbase the
     pool fixes, <em>before</em> the extranonce — so the "must sit outside the rolled bytes" rule above
     isn't something an implementer has to remember, it's how the message is built. And the tag is a
-    <em>text</em> field, so <code>A_send</code> has to be written as text rather than raw bytes.
-    That matters more than it sounds: plain hex needs 64 characters and the budget is exactly 64, so it
-    fits with nothing left for anything else. A compact text encoding — the same kind bitcoin addresses
-    use — needs about 52 and leaves room to breathe.
+    <em>text</em> field, so <code>A_send</code> has to be written as text rather than raw bytes — which
+    is where the chart above comes from. Hex fits with nothing to spare; an address-style encoding
+    leaves room.
   </p>
 </div>
 
