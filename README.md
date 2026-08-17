@@ -9,7 +9,9 @@ on paper and then pinned down in code, so that the spec diff it needs can be wri
 something executable.
 
 👉 **[`index.html`](index.html) is a plain-English explainer** of what the variant is and how the
-maths works. Start there.
+maths works, and it **runs case 12 in the browser** — no libraries, ~40 lines of `BigInt` curve
+arithmetic plus the browser's own SHA-256. Start there. (Needs a secure context for
+`crypto.subtle`, so serve it over `https://` or `localhost`, not `file://`.)
 
 ## The construction
 
@@ -54,7 +56,7 @@ module and `PYTHONDONTWRITEBYTECODE=1` in the baseline subprocess, so importing 
 
 | File | Role |
 |---|---|
-| `index.html` | Plain-English explainer of the variant |
+| `index.html` | Plain-English explainer, plus a dependency-free JS reimplementation of case 12 that runs in the browser |
 | `sp_coinbase.py` | The construction: `input_hash` variants (sound and broken), sender/scanner derivation, even-Y canonicalization, spend-key assembly |
 | `generate_vectors.py` | Deterministic key material and the case builders |
 | `coinbase_sp_test_vectors.json` | 11 cases, mirroring `send_and_receive_test_vectors.json`'s schema |
@@ -124,9 +126,12 @@ Namecoin-style AuxPoW header is ~44 B) leave room alongside 34 B in practice.
 
 - **The vectors are largely self-consistent.** Generator and runner both derive through
   `sp_coinbase.py`, so the JSON is a regression fixture over that module rather than an independent
-  check of it. Two things break the circularity: the baseline exercises unmodified `reference.py`,
-  and case 2 re-derives `input_hash` and `P_0` from the JSON givens using raw `hashlib`. A second,
-  independent implementation is what a real review needs.
+  check of it. Three things break the circularity: the baseline exercises unmodified `reference.py`,
+  case 2 re-derives `input_hash` and `P_0` from the JSON givens using raw `hashlib`, and
+  `index.html` reimplements case 12 in JavaScript — separate curve arithmetic, written from the
+  formulas — and reproduces every byte. That rules out arithmetic and serialization mistakes. It
+  does not substitute for review: same author, so a misreading of the design would be reproduced
+  faithfully in both.
 - **No security proof** for the sender-side split, and none is attempted. Case 9 shows the
   group-linear key list is broken; it does not prove the non-linear branch is unusable — that stays
   a generic-group-model argument.

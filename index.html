@@ -46,6 +46,7 @@
   .glossary code { background: #e9e5dd; }
   footer { margin-top: 4rem; padding-top: 1.2rem; border-top: 1px solid #e5e0d6; color: #777; font-size: .85rem; }
   footer code { font-size: .9em; }
+  .ok { color: #1f6b3a; } .bad { color: #a3271f; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -354,7 +355,59 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
   </p>
 </div>
 
-<h2><span class="n">07</span> What this does and doesn't buy</h2>
+<h2><span class="n">07</span> Run it</h2>
+
+<p>
+  Everything above is checked by test vectors in this repo. Here is one of them — the pool-tag case —
+  executing in your browser, right now. No libraries: the curve arithmetic is about forty lines of
+  <code>BigInt</code>, and the hashing is the browser's own <code>SHA-256</code>.
+</p>
+
+<div class="math">given <span class="c">(one miner, one block)</span>
+  block height   840000
+  a_send         fe917399…fae5b218  <span class="c">pool's ephemeral secret</span>
+  b_scan         bcd16e58…1c5b8173  <span class="c">miner's scanning secret</span>
+  B_spend        0375315f…5cda9694  <span class="c">miner's public spend key</span>
+  extranonce     0102030405060708    <span class="c">the bytes miners roll</span></div>
+
+<div class="math" id="out">running…</div>
+<noscript>
+  <div class="math"><span class="c">This part needs JavaScript. The same check runs offline:</span>
+  python3 run_tests.py</div>
+</noscript>
+
+<p id="verdict" class="sub" style="margin:-.6rem 0 1.4rem"></p>
+
+<p>
+  The two sides never exchange a secret. The pool computed that payout key from
+  <code>a_send</code> and the miner's public keys; the miner computed the same key from
+  <code>b_scan</code> and the <code>A_send</code> it read out of the block. And the last two lines are
+  the constraint from section 6: the key sits clear of the bytes miners rewrite while hashing.
+</p>
+
+<p>
+  This is the code that just ran — printed from the live functions, so it can't drift from what
+  executed:
+</p>
+
+<div class="math" id="src"></div>
+
+<div class="key">
+  <p>
+    <strong>Why this is worth more than a demo.</strong> The test vectors in this repo are generated
+    and checked by the same Python module, so on their own they mostly prove that module agrees with
+    itself. The code on this page is a <em>second, independent implementation</em> — different
+    language, different curve arithmetic, written from the formulas rather than from the original —
+    and it lands on the same bytes. That's a real cross-check.
+  </p>
+  <p>
+    It is not a substitute for review, though. Same author, so a misreading of the design would be
+    reproduced faithfully in both. What it rules out is arithmetic and serialization mistakes, which
+    is the class of bug test vectors exist to catch.
+  </p>
+</div>
+
+<h2><span class="n">08</span> What this does and doesn't buy</h2>
 
 <p>
   It hides the payouts from <strong>everyone reading the blockchain</strong>. Each miner sees
@@ -381,5 +434,160 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 </footer>
 
 </main>
+
+<script>
+// secp256k1 over BigInt. Enough for this page, nothing more — no library, no CDN.
+const P = 2n**256n - 2n**32n - 977n;
+const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+const Gpt = { x: 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n,
+              y: 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n };
+
+const mod = (a, m) => ((a % m) + m) % m;
+const pw  = (b, e, m) => { let r = 1n; b = mod(b, m); while (e > 0n) { if (e & 1n) r = r*b % m; b = b*b % m; e >>= 1n; } return r; };
+const inv = (a) => pw(a, P - 2n, P);
+
+function dbl(p) {
+  const l = mod(3n*p.x*p.x * inv(mod(2n*p.y, P)), P);
+  const x = mod(l*l - 2n*p.x, P);
+  return { x, y: mod(l*(p.x - x) - p.y, P) };
+}
+function add(p, q) {
+  if (!p) return q;
+  if (!q) return p;
+  if (p.x === q.x) return mod(p.y + q.y, P) === 0n ? null : dbl(p);
+  const l = mod((q.y - p.y) * inv(mod(q.x - p.x, P)), P);
+  const x = mod(l*l - p.x - q.x, P);
+  return { x, y: mod(l*(p.x - x) - p.y, P) };
+}
+function mul(k, p) {
+  let r = null, a = p; k = mod(k, N);
+  while (k > 0n) { if (k & 1n) r = add(r, a); a = dbl(a); k >>= 1n; }
+  return r;
+}
+
+const hex   = (b) => [...b].map(x => x.toString(16).padStart(2, '0')).join('');
+const unhex = (s) => new Uint8Array(s.match(/../g).map(x => parseInt(x, 16)));
+const be32  = (n) => new Uint8Array([n>>24 & 255, n>>16 & 255, n>>8 & 255, n & 255]);
+const b32   = (i) => unhex(i.toString(16).padStart(64, '0'));
+const num   = (b) => BigInt('0x' + hex(b));
+const cat   = (...a) => { const o = new Uint8Array(a.reduce((n, x) => n + x.length, 0)); let i = 0; for (const x of a) { o.set(x, i); i += x.length; } return o; };
+const ser   = (p) => cat(new Uint8Array([p.y % 2n === 0n ? 2 : 3]), b32(p.x));
+const xonly = (p) => b32(p.x);
+
+function lift(x32) {                                    // x-only -> even-Y point
+  const x = num(x32), c = mod(x*x*x + 7n, P);
+  const y = pw(c, (P + 1n) / 4n, P);
+  if (pw(y, 2n, P) !== c) throw new Error('not on curve');
+  return { x, y: y % 2n === 0n ? y : P - y };
+}
+function decompress(b33) {                              // honour the 02/03 parity prefix
+  const p = lift(b33.slice(1));
+  return b33[0] === 2 ? p : { x: p.x, y: P - p.y };
+}
+
+const sha = async (b) => new Uint8Array(await crypto.subtle.digest('SHA-256', b));
+async function tagged(tag, msg) {                       // BIP340 tagged hash
+  const t = await sha(new TextEncoder().encode(tag));
+  return sha(cat(t, t, msg));
+}
+
+/* ---- the construction (displayed on the page verbatim) ------------------- */
+
+async function inputHash(height, A_send) {
+  return tagged('SP-Coinbase/Inputs', cat(be32(height), ser(A_send)));
+}
+
+async function tweak(ecdh) {
+  return tagged('SP-Coinbase/SharedSecret', cat(ser(ecdh), be32(0)));
+}
+
+// Miner side. ecdh = input_hash * b_scan * A_send; the two scalars multiply
+// first, so this costs one point multiplication.
+async function scannerDerive(b_scan, B_spend, A_send, height) {
+  const ih   = num(await inputHash(height, A_send));
+  const ecdh = mul(mod(ih * b_scan, N), A_send);
+  const t    = num(await tweak(ecdh));
+  return { ecdh, t, P_0: add(B_spend, mul(t, Gpt)) };
+}
+
+// scriptSig = BIP34 height push || extranonce || push33(A_send). Nothing else:
+// the A_send push IS the pool tag.
+function buildScriptSig(height, extranonce, A_send) {
+  const h = [];
+  for (let v = height; v > 0; v = Math.floor(v / 256)) h.push(v % 256);
+  if (h[h.length - 1] & 0x80) h.push(0);
+  return cat(new Uint8Array([h.length]), new Uint8Array(h),
+             extranonce, new Uint8Array([0x21]), ser(A_send));
+}
+
+function parseASend(script, offset) {
+  if (script[offset] !== 0x21) throw new Error('expected a 33-byte push');
+  return decompress(script.slice(offset + 1, offset + 34));
+}
+
+/* ---- case 12 of coinbase_sp_test_vectors.json ---------------------------- */
+
+const V = {
+  height: 840000,
+  a_send:     'fe917399ccc4f8b8c5073539f7327b6e3a9336ec72137a9582c80161fae5b218',
+  scan_priv:  'bcd16e58d1a5048c7e7e5a3293792713b4a4263a6656452bbea1cdbd1c5b8173',
+  spend_pub:  '0375315feac501d764e125c51116240d6f4007a960c7e9c955715eec5c5cda9694',
+  extranonce: '0102030405060708',
+  A_send:     'a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d',
+  input_hash: 'a070c5a097eed79a74dbe0ed336512432f1f7b9f61d0c4812cd5a768aa1e69ad',
+  secret:     '022ba48255fe73d8239d4feaf4514a463a40fd7d5920decf238d79de3ad0f04c4f',
+  tweak:      'bd763826927f80f384b8d939862715b017662e5982c9b1447bd8b28e156efa31',
+  output:     '20f2add250187d8d5263eb85e7954a485249d3b9f8d6acf20946f6b820354d76',
+  scriptSig:  '0340d10c01020304050607082102a9b52b0b02e7408dffd236485feb2cfdd5a88eabd1aca6e68f2c57092d428e3d',
+  offset: 12,
+};
+
+async function runVector() {
+  const rows = [];
+  const ck = (label, got, want) => rows.push([label, got, got === want]);
+
+  // Pool side: canonicalise a_send to the even-Y representative, publish x-only.
+  let a = num(unhex(V.a_send)), A = mul(a, Gpt);
+  const negated = A.y % 2n !== 0n;
+  if (negated) { a = N - a; A = mul(a, Gpt); }
+  ck('A_send  (published x-only)', hex(xonly(A)), V.A_send);
+
+  const script = buildScriptSig(V.height, unhex(V.extranonce), A);
+  ck('coinbase scriptSig', hex(script), V.scriptSig);
+
+  // Miner side: read A_send back out of the block, then derive.
+  const A2 = parseASend(script, V.offset);
+  ck('A_send read back from block', hex(xonly(A2)), V.A_send);
+  ck('input_hash', hex(await inputHash(V.height, A2)), V.input_hash);
+  const r = await scannerDerive(num(unhex(V.scan_priv)), decompress(unhex(V.spend_pub)), A2, V.height);
+  ck('shared secret  (both sides)', hex(ser(r.ecdh)), V.secret);
+  ck('tweak  t_0', hex(b32(r.t)), V.tweak);
+  ck('payout key  P_0', hex(xonly(r.P_0)), V.output);
+
+  const hLen = 1 + script[0];
+  ck('scriptSig fits 100-byte budget', String(script.length) + ' bytes', '46 bytes');
+  ck('A_send clear of extranonce', V.offset >= hLen + 8 ? 'yes' : 'NO', 'yes');
+  return rows;
+}
+
+const esc = (s) => s.replace(/[<&]/g, (c) => c === '<' ? '&lt;' : '&amp;');
+
+runVector().then((rows) => {
+  const w = Math.max(...rows.map(([l]) => l.length));
+  document.getElementById('out').innerHTML = rows.map(([l, g, ok]) =>
+    `  <span class="${ok ? 'ok' : 'bad'}">${ok ? '✓' : '✗'}</span> ${esc(l.padEnd(w + 2))}${esc(g)}`
+  ).join('\n');
+  const bad = rows.filter(([, , ok]) => !ok).length;
+  document.getElementById('verdict').innerHTML = bad
+    ? `<span class="bad">${bad} of ${rows.length} did not match the recorded vector.</span>`
+    : `All ${rows.length} values match the recorded test vector.`;
+  document.getElementById('src').textContent =
+    [inputHash, tweak, scannerDerive, buildScriptSig, parseASend].map(f => f.toString()).join('\n\n');
+}).catch((e) => {
+  document.getElementById('out').innerHTML =
+    `<span class="bad">Could not run: ${esc(String(e))}</span>\n` +
+    `(SHA-256 needs a secure context — open over https:// or localhost, not file://)`;
+});
+</script>
 </body>
 </html>

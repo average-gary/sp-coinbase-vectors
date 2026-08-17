@@ -339,6 +339,31 @@ CHECKS = {
 }
 
 
+# --- index.html carries its own copy of case 12, for the in-browser demo ------
+def check_html_vector_in_sync(cases: list) -> None:
+    """The explainer runs case 12 in JavaScript against hardcoded values. If the
+    vectors are regenerated with different key material, that copy goes stale and
+    the page would show a green tick for numbers nobody checks. Pin it here."""
+    html = (Path(__file__).resolve().parent / "index.html").read_text()
+    case = next(c for c in cases if c["case_type"] == "coinbase_scriptSig_carrier")
+    se, re_ = case["sending"][0], case["receiving"][0]
+    for name, want in [
+        ("a_send", se["given"]["a_send"]),
+        ("scan_priv", re_["given"]["key_material"]["scan_priv_key"]),
+        ("spend_pub", se["given"]["recipients"][0]["spend_pub_key"]),
+        ("extranonce", se["given"]["scriptsig_carrier"]["extranonce"]),
+        ("A_send", se["expected"]["A_send"]),
+        ("input_hash", se["expected"]["input_hash"]),
+        ("secret", se["expected"]["shared_secrets"][0]),
+        ("tweak", se["expected"]["tweaks"][0]),
+        ("output", se["expected"]["outputs"][0]),
+        ("scriptSig", se["expected"]["coinbase_scriptSig"]),
+    ]:
+        assert f"'{want}'" in html, f"index.html is stale: {name} no longer matches the vector"
+    assert f"height: {se['given']['height']}," in html, "index.html height is stale"
+    assert f"offset: {re_['given']['A_send_source']['offset']}," in html, "index.html offset is stale"
+
+
 def main() -> int:
     failures = 0
     if "--skip-baseline" in sys.argv:
@@ -351,7 +376,8 @@ def main() -> int:
             failures += 1
             print("FAIL: baseline — 28 vendored BIP352 vectors, unmodified reference.py")
             traceback.print_exc()
-    for case in json.loads(VECTORS.read_text()):
+    cases = json.loads(VECTORS.read_text())
+    for case in cases:
         try:
             CHECKS[case["case_type"]](case)
             print(f"PASS: {case['case_type']}")
@@ -359,6 +385,13 @@ def main() -> int:
             failures += 1
             print(f"FAIL: {case['case_type']} — {case['comment'][:100]}")
             traceback.print_exc()
+    try:
+        check_html_vector_in_sync(cases)
+        print("PASS: index.html demo values in sync with case 12")
+    except Exception:
+        failures += 1
+        print("FAIL: index.html demo values in sync with case 12")
+        traceback.print_exc()
     if failures:
         print(f"\n{failures} check(s) FAILED")
         return 1
