@@ -312,14 +312,6 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
     derive the key from something already published, then so can anyone holding the original
     secret. Independent keys have to be independently published. There's no shortcut.
   </p>
-  <p>
-    <strong>Worth naming, because it's the shortcut everyone reaches for first:</strong> the standard
-    wallet method of publishing one master key and deriving an endless run of addresses from it is
-    <em>exactly</em> the formula above. For a normal wallet that's the whole point — you can always
-    recover your coins from the master key. Here it's fatal for the same reason, because it means the
-    keys can never really be destroyed. A pool wanting rotating payout addresses <em>should</em> use
-    it; <code>a_send</code> must not. Same machinery, opposite requirement.
-  </p>
 </div>
 
 <h2><span class="n">07</span> What this does and doesn't buy</h2>
