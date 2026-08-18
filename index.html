@@ -63,7 +63,11 @@
 <h1>Silent payments in the coinbase</h1>
 <p class="sub">
   How a mining pool could pay its miners directly in the block reward without publishing
-  who got paid — and the one change to BIP&nbsp;352 that makes it possible.
+  who got paid — and the two changes to BIP&nbsp;352 that make it possible.
+</p>
+<p class="sub" style="margin:-2rem 0 3rem; font-size:.92rem">
+  Status: a construction worked out on paper and pinned down in executable test vectors —
+  not a specification, not reviewed, not implemented anywhere.
 </p>
 
 <div class="glossary">
@@ -88,7 +92,9 @@
 <h2><span class="n">02</span> How silent payments normally do this</h2>
 
 <p>
-  A miner publishes <em>two</em> public keys instead of an address, and keeps both secrets:
+  A miner publishes <em>two</em> public keys instead of an address — this is
+  <a href="https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki">BIP&nbsp;352</a>'s
+  silent payment address — and keeps both secrets:
   a <strong>scan key</strong> for spotting payments and a <strong>spend key</strong> for
   spending them.
 </p>
@@ -97,8 +103,9 @@
 <span class="c">pool has:</span>         A      = a·G</div>
 
 <p>
-  Both sides can now compute the same secret without ever sending it, because scalar
-  multiplication doesn't care about the order you do it in:
+  Both sides can now compute the same secret without ever sending it — this is a
+  Diffie-Hellman exchange (ECDH), and it works because scalar multiplication doesn't care
+  about the order you do it in:
 </p>
 
 <div class="math"><span class="c">pool computes:</span>   s = a·B_scan  =  a·(b_scan·G)
@@ -159,7 +166,8 @@ s = h·a·B_scan</div>
 
 <p>
   <strong>There's no unique outpoint.</strong> Every coinbase in history points at the same
-  placeholder — all zeroes. Using it as the nonce would give <em>every block</em> the same
+  fixed placeholder — a null prevout: a zero transaction hash and an index of
+  <code>0xffffffff</code>. Using it as the nonce would give <em>every block</em> the same
   <code>h</code>, so a pool paying a miner each block would pay the same address every time.
 </p>
 
@@ -167,8 +175,9 @@ s = h·a·B_scan</div>
 
 <p>
   The second problem turns out not to be a problem at all. Since 2013 every block has been
-  required to write its own <strong>height</strong> into the coinbase. It's unique, it's
-  already there, and both sides know it.
+  required to write its own <strong>height</strong> into the coinbase
+  (<a href="https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki">BIP&nbsp;34</a>).
+  It's unique, it's already there, and both sides know it.
 </p>
 
 <div class="math">h = hash(H, A_send)          <span class="c">H = the block height</span></div>
@@ -191,6 +200,15 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
   That's the whole variation. Everything downstream is unchanged.
 </p>
 
+<p>
+  One detail in that formula is load-bearing: the nonce commits to the key actually used —
+  <code>h = hash(H, A_send)</code>, not <code>hash(H)</code> alone. Leave the key out and the
+  construction has a replay attack: anyone holding one block's <code>a_send</code> can compute
+  a key for any other block that yields the <em>same</em> shared secret — same <code>t</code>,
+  same <code>P</code>, forced address reuse. The test suite keeps the broken version as a
+  negative control; the binding is what kills it.
+</p>
+
 <h2><span class="n">05</span> Why the extra key is the point</h2>
 
 <p>
@@ -200,7 +218,8 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 <p>
   In ordinary silent payments, <code>a</code> is doing two unrelated jobs at once: it does this
   shared-secret calculation, <em>and</em> it's the key that spends the sender's money. Those
-  jobs have opposite requirements. Money keys must be kept forever. A privacy key should be
+  jobs pull in opposite directions. A money key must exist, hot, at signing time — and in any
+  real wallet it goes on guarding other funds, so it is kept. A privacy key should be
   destroyed the moment it's been used.
 </p>
 
@@ -216,9 +235,11 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
 </p>
 
 <p>
-  What changes is that throwing the key away becomes <em>possible at all</em>. Today the sender's key
-  spends money, so it must be kept — there is no version of the pool that doesn't hold it. With a
-  dedicated <code>a_send</code>, a pool that wants to keep nothing is able to, and a key that no
+  What changes is that throwing the key away becomes <em>possible at all</em>. The fused
+  alternative is a key that also spends money — in a coinbase, the only key the transaction
+  reveals for free is the fee-output key, and that one must be kept: there is no version of the
+  pool that doesn't hold it. With a dedicated <code>a_send</code>, a pool that wants to keep
+  nothing is able to, and a key that no
   longer exists can't leak, can't be stolen, and can't be handed over later. Unverifiable but
   available beats unavailable, and it's the pool's own risk it's reducing, so the incentive points
   the right way without anyone having to take it on trust.
@@ -265,39 +286,51 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
   the start of the coinbase, and a second one attached to the segwit commitment. Either has room.
   One constraint: while searching for a block, a miner rapidly rewrites part of that scratch area
   (the <em>extranonce</em>) millions of times a second. <code>A_send</code> has to sit outside those
-  bytes — if it moved, every attempt would change all the payout addresses.
+  bytes. The payout outputs are fixed when the template is built; if the key overlapped the rolled
+  region, mining itself would overwrite the key the outputs were derived from — the block would pay
+  addresses no miner can detect.
 </p>
 
 <p>
-  That first scratch area holds 100 bytes, and the room is there. Checked against the Stratum V2
-  reference pool:
+  That first scratch area holds 100 bytes by consensus (BIP&nbsp;34 caps the coinbase scriptSig at
+  2–100 bytes), and the room is comfortably there. The layout below is the one the demo in
+  section&nbsp;7 executes, checked against the
+  <a href="https://stratumprotocol.org">Stratum V2 spec</a> (2026-08-16):
 </p>
 
-<div class="math">100 bytes of scratch space <span class="c">— one █ = 2 bytes</span>
+<div class="math">100 bytes of coinbase scriptSig <span class="c">— one █ = 2 bytes</span>
 
-  block height    8  ████        <span class="c">worst case</span>
-  extranonce     20  ██████████  <span class="c">miner-rolled</span>
-  framing         8  ████        <span class="c">delimiters + opcodes</span>
+  height push    4  ██                  <span class="c">BIP 34, minimally encoded</span>
+  extranonce     8  ████                <span class="c">the bytes miners roll</span>
+  A_send push   34  █████████████████   <span class="c">0x21 ‖ 33-byte key</span>
   ─────────────────
-  <b>free           64</b>  ████████████████████████████████
-
-<b>A_send as text — does it fit in those 64?</b>
-
-  hex            64  ████████████████████████████████  <span class="c">full</span>
-  bech32         52  ██████████████████████████        <span class="c">+12</span>
-  base64url      43  █████████████████████             <span class="c">+21</span></div>
+  <b>free          54</b>  ███████████████████████████</div>
 
 <p>
-  Two details in there matter. The height slot is 8 because that's the largest the protocol permits and
-  the software reserves it whether or not it's used — today's block heights only need 4, but you can't
-  spend the difference. And the key has to go in as the <em>x coordinate only</em>, 32 bytes: the
-  33-byte form with its redundant prefix byte needs 66 hex characters and overruns.
+  Worst cases still fit: reserve up to 8 bytes for the height (a software reservation, not a
+  protocol cap — today's heights minimally encode to 4) and 20 for the extranonce, and the
+  34-byte key still leaves more than 30 bytes free. Note that the key goes in as raw bytes, a
+  33-byte push: nothing in a scriptSig is text unless the pool wants it to be.
 </p>
 
 <p>
-  Better, all 100 bytes are <em>already reserved</em> by mining software whether or not anything uses
-  them, and unused ones are not handed back to fee-paying transactions. So the space is pre-paid:
-  putting <code>A_send</code> there costs nothing.
+  Better: under Stratum V2's template distribution protocol, a template provider <em>must</em>
+  reserve the worst-case 100 bytes for the scriptSig whether or not anything uses them, and
+  unused ones are not handed back to fee-paying transactions. So the space is pre-paid: putting
+  <code>A_send</code> there displaces nothing.
+</p>
+
+<p>
+  Stratum V2 also makes the extranonce rule structural rather than conventional. The coinbase is
+  assembled as <code>prefix ‖ extranonce ‖ suffix</code>, where the extranonce is <em>defined</em>
+  as the gap between the two pool-fixed halves — so a key placed in the suffix cannot be rolled
+  by construction. Two constraints do follow. All channels in a group channel share one extranonce
+  size, so the 34 bytes shrink that space uniformly for the group (against a 64-byte protocol
+  ceiling; practical allocations are 8–16). And one deployment mode is out of scope: under Job
+  Declaration the miner's own side builds the coinbase, so the pool cannot place the key at
+  all — this scheme assumes a pool-controlled template. Because the key's length is constant,
+  none of this needs per-block renegotiation. One open question: whether merge-mining
+  commitments leave room alongside those 34 bytes in practice — that hasn't been verified.
 </p>
 
 <p>
@@ -328,18 +361,16 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
   <p>
     The pool doesn't even lose its public identity. If its list of <code>A_send</code> values is
     published — which it has to be anyway — then <em>"this block used entry number H from that
-    pool's list"</em> identifies it just as well as a text tag. Better, in fact: anyone can type
-    someone else's name into a block, but a copied <code>A_send</code> is inert, since you can't
-    derive a single payment from it without holding <code>a_send</code>. The cost is that block
-    explorers lose a human-readable label.
+    pool's list"</em> identifies it at least as well as a text tag. Anyone can type someone
+    else's name into a block, and anyone can copy its <code>A_send</code> too — but a copied
+    <code>A_send</code> is inert, since you can't derive a single payment from it without
+    holding <code>a_send</code>. The cost is that block explorers lose a human-readable label.
   </p>
   <p>
-    Two practical notes. The tag lands in the part of the coinbase the
-    pool fixes, <em>before</em> the extranonce — so the "must sit outside the rolled bytes" rule above
-    isn't something an implementer has to remember, it's how the message is built. And the tag is a
-    <em>text</em> field, so <code>A_send</code> has to be written as text rather than raw bytes — which
-    is where the chart above comes from. Hex fits with nothing to spare; an address-style encoding
-    leaves room.
+    One practical note. The key doesn't have to sit exactly where the tag sat — anywhere in the
+    pool-fixed bytes works. The layout above (and the demo below) appends it right after the
+    extranonce, in the suffix, where the disjointness is structural rather than remembered. And
+    it goes in as raw bytes, not text — which is why the budget above has room to spare.
   </p>
 </div>
 
@@ -349,12 +380,12 @@ p = b_spend + t         <span class="c">← only the miner can compute this</spa
     rest looks free, and the maths does line up — the miner really can compute this block's key
     from the first one:
   </p>
-  <div class="math" style="margin:.8rem 0">a_H = a_0 + hash(H)          <span class="c">pool's secret for block H</span>
-A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span></div>
+  <div class="math" style="margin:.8rem 0">a_H = a_0 + hash(A_0, H)      <span class="c">pool's secret for block H</span>
+A_H = A_0 + hash(A_0, H)·G    <span class="c">miner computes this from A_0</span></div>
   <p>
-    But read the first line again. Anyone who ever learns <code>a_0</code> can compute
-    <code>a_H</code> for <em>every</em> block, past and future, and unmask every payout the
-    pool ever made. The one property worth having is gone.
+    But read the first line again. Anyone who ever learns <em>any one</em> of these secrets
+    can compute all the others — the differences between them are public — and unmask every
+    payout the pool ever makes, past and future. The one property worth having is gone.
   </p>
   <p>
     That's not a flaw in this particular formula — it's the general case. If the miner can
@@ -394,6 +425,16 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
   the constraint from section 6: the key sits clear of the bytes miners rewrite while hashing.
 </p>
 
+<p>
+  Two conventions hidden in that code are load-bearing. The key travels as an x coordinate, so
+  both sides need a parity rule: the pool canonicalises <code>a_send</code> to the even-Y
+  representative — negating it first if needed — and the miner does the same on receipt. Omit
+  the negation and both sides still derive, but from different points, so the scan silently
+  finds nothing (the suite keeps that failure as a negative control too). And the height is
+  minimally encoded little-endian on the wire but big-endian inside the hash; the full suite
+  parses it back out of the scriptSig rather than trusting the input.
+</p>
+
 <p>The code that produced it:</p>
 
 <div class="math" id="src"></div>
@@ -410,8 +451,10 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <p>
   The catch is that a Python interpreter has to be downloaded first: about 6 MB from a CDN.
   Nothing is fetched until you press the button, and if you would rather not,
-  <code>python3 run_tests.py</code> runs it at a terminal instead — all eleven cases if you also
-  have a clone of <code>bitcoin/bips</code>, and the same nine as here if you don't.
+  <code>python3 run_tests.py</code> runs it at a terminal instead — all eleven cases, plus the
+  28-vector upstream baseline, if you also have a clone of
+  <a href="https://github.com/bitcoin/bips"><code>bitcoin/bips</code></a>, and the same nine as
+  here if you don't.
 </p>
 
 <p><button id="pyrun" disabled>Run the real Python suite (downloads about 6 MB)</button></p>
@@ -420,14 +463,17 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <p id="pystatus" class="sub" style="margin:-.6rem 0 1.4rem" role="status" aria-live="polite"></p>
 
 <p>
-  Nine of the eleven cases run here. The rest print <code>SKIP</code>: they compare against
-  <strong>unmodified BIP&nbsp;352 code</strong>, which a browser has no way to fetch — including the
-  case showing that plain silent payments reject a coinbase outright.
+  Nine of the eleven cases run here. The rest print <code>SKIP</code>: the upstream baseline and
+  the two cases that compare against <strong>unmodified BIP&nbsp;352 code</strong> — including the
+  one showing that plain silent payments reject a coinbase outright — need a clone of
+  <code>bitcoin/bips</code>, which a browser has no way to fetch. The vendor-drift and page-sync
+  guards skip too: they need files this page doesn't hand to the interpreter.
 </p>
 
 <p>
   One warning if this tempts you to reuse the Python. The curve arithmetic comes from
-  <code>secp256k1lab</code>, a teaching implementation whose own README says it is insecure and
+  <a href="https://github.com/bitcoin/bips/tree/master/bip-0352/secp256k1lab"><code>secp256k1lab</code></a>,
+  a teaching implementation whose own README says it is insecure and
   trivially vulnerable to side-channel attacks. It is the right tool for test vectors and the
   wrong one for anything holding money.
 </p>
@@ -435,8 +481,12 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <h2><span class="n">09</span> What this does and doesn't buy</h2>
 
 <p>
-  It hides the payouts from <strong>everyone reading the blockchain</strong>. Each miner sees
-  its own payment and learns nothing about the others.
+  It hides <strong>who was paid</strong> — and which outputs were payouts at all — from everyone
+  reading the blockchain. The outputs themselves sit in plain sight, amounts included, but no
+  observer can tell which output pays which miner, or even how many miners there are. Each miner
+  sees its own payment and learns nothing about the others. The cost of that invisibility is one
+  curve multiplication per block per silent key — nothing, for a party already running a full
+  node.
 </p>
 
 <p>
@@ -450,11 +500,16 @@ A_H = A_0 + hash(H)·G        <span class="c">miner computes this from A_0</span
 <footer>
   Not a specification, not reviewed, not implemented anywhere.
   Builds on <a href="https://github.com/bitcoin/bips/blob/master/bip-0352.mediawiki">BIP&nbsp;352</a>
-  (silent payments) and BIP&nbsp;34 (block height in the coinbase).
-  The change is that BIP&nbsp;352 deliberately uses the sender's <em>spending</em> key for the
-  shared secret, because that key is the only one a transaction reveals for free; a coinbase
-  reveals none, so the key has to be supplied on purpose — and once you're supplying it
-  anyway, it may as well be one that isn't holding money.
+  (silent payments) and <a href="https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki">BIP&nbsp;34</a>
+  (block height in the coinbase). The key change in context: BIP&nbsp;352 deliberately uses the
+  sender's <em>spending</em> key for the shared secret, because that key is the only one a
+  transaction reveals for free; a coinbase reveals none, so the key has to be supplied on
+  purpose — and once you're supplying it anyway, it may as well be one that isn't holding money.
+  No security proof is attempted, and the test vectors are pinned against their own
+  implementation — the JavaScript rewrite on this page is the only independently written check,
+  so a misreading of the design would be reproduced faithfully in both. Two spec-level decisions
+  (hash tags, address version byte) are flagged in the
+  <a href="https://github.com/average-gary/sp-coinbase-vectors">repo</a>, not settled.
 </footer>
 
 </main>
